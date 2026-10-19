@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stužková 4.NA</title>
+<meta name="description" content="Appka triedy 4.NA na stužkovú 11. 12. 2026">
+<meta name="theme-color" content="#0a0809">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stužková">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: black-tie gala app. One tab visible at a time (Domov, Úlohy, Hostia, Nápoje, Peniaze), switched by a fixed bottom tab bar or a horizontal swipe.
+   Deliberately single dark theme: the look is a night gala on both host themes. */
+:root {
+  --bg: #0a0809;
+  --surface: #141012;
+  --surface-2: #1b1517;
+  --fg: #f4ece8;
+  --muted: #a3969a;
+  --line: #2e2326;
+  --red: #c8102e;
+  --red-soft: #ff4d5e;
+  --on-red: #fff5f3;
+  --ok: #6fca8f;
+  --warn: #ff8a70;
+  --wait: #e8c36a;
+  --font-display: "Cormorant", "Didot", Georgia, serif;
+  --font-body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --tabbar-h: 64px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--bg); }
+body { color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 12px); overflow-x: hidden; }
+.wrap { max-width: 860px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* Hero (Domov) */
+.hero { background: radial-gradient(120% 90% at 50% -10%, #5a0614 0%, #22040a 45%, var(--bg) 80%); position: relative; overflow: hidden; text-align: center; }
+.hero::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, rgba(0,0,0,.28) 0 2px, transparent 2px 46px); mask-image: linear-gradient(to bottom, #000, transparent 70%); -webkit-mask-image: linear-gradient(to bottom, #000, transparent 70%); pointer-events: none; }
+.hero .wrap { padding-block: 40px 36px; display: grid; gap: 20px; justify-items: center; position: relative; z-index: 1; }
+.eyebrow { font-size: 12px; letter-spacing: .32em; text-transform: uppercase; font-weight: 600; color: var(--red-soft); display: flex; align-items: center; gap: 12px; }
+.eyebrow::before, .eyebrow::after { content: ""; width: 28px; height: 1px; background: currentColor; }
+h1 { font-family: var(--font-display); font-weight: 600; font-size: clamp(44px, 11vw, 84px); line-height: .95; margin: 8px 0 0; text-wrap: balance; }
+h1 em { font-style: italic; font-weight: 500; color: var(--red); display: block; }
+.meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; font-size: 14px; letter-spacing: .04em; color: color-mix(in srgb, var(--fg) 80%, transparent); }
+.count { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; max-width: 560px; border-block: 1px solid color-mix(in srgb, var(--red) 60%, transparent); }
+.count div { padding: 14px 4px 12px; text-align: center; min-width: 0; }
+.count div + div { border-left: 1px solid var(--line); }
+.count b { display: block; font-family: var(--font-display); font-weight: 500; font-size: clamp(34px, 10vw, 56px); line-height: 1; font-variant-numeric: tabular-nums lining-nums; }
+.count span { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.count .over { grid-column: 1 / -1; }
+.org { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center; }
+.save-state { font-size: 13px; color: var(--muted); }
+
+/* Page sections */
+.page { padding-block: 20px 24px; display: grid; gap: 18px; animation: enter .22s ease-out; }
+.page.from-left { animation-name: enter-left; }
+@keyframes enter { from { opacity: .4; transform: translateX(18px); } to { opacity: 1; transform: none; } }
+@keyframes enter-left { from { opacity: .4; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+.page-head { display: grid; gap: 4px; padding-top: 8px; }
+.page-head h2 { font-family: var(--font-display); font-weight: 600; font-size: 40px; line-height: 1; margin: 0; }
+.page-head p { margin: 0; color: var(--muted); font-size: 14px; }
+section { background: var(--surface); border: 1px solid var(--line); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--red) 45%, transparent); border-radius: 6px; padding: 16px; min-width: 0; display: grid; gap: 12px; align-content: start; }
+h3 { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 640px) { .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.stat { border-left: 2px solid var(--red); padding: 2px 0 2px 10px; min-width: 0; }
+.stat b { display: block; font-family: var(--font-mono); font-size: 20px; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+button.stat { background: none; border: none; border-left: 2px solid var(--red); border-radius: 0; color: inherit; text-align: left; padding: 2px 0 2px 10px; font-weight: inherit; white-space: normal; }
+
+/* Controls */
+label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted); min-width: 0; }
+input, select { font: inherit; font-size: 15px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 4px; background: #0d0a0b; color: var(--fg); min-width: 0; width: 100%; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--red-soft); outline-offset: 1px; }
+button { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 14px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; background: var(--red); color: var(--on-red); white-space: nowrap; }
+button:hover { filter: brightness(1.1); }
+button.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+button.small { padding: 4px 10px; font-size: 13px; }
+button.danger { background: transparent; color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+.editor { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; background: var(--surface-2); border: 1px solid color-mix(in srgb, var(--red) 40%, var(--line)); border-radius: 6px; padding: 12px; }
+.editor .actions { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; }
+.editor .actions .spacer { flex: 1; }
+.seg { display: flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; justify-self: start; max-width: 100%; }
+.seg button { background: transparent; color: var(--muted); border-radius: 0; padding: 6px 12px; font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--red); color: var(--on-red); }
+
+/* Lists */
+ul.list { list-style: none; margin: 0; padding: 0; display: grid; }
+ul.list > li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); min-width: 0; }
+ul.list > li:first-child { border-top: none; }
+ul.list > li.editing { display: block; }
+.grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.sub { font-size: 12px; color: var(--muted); }
+.chip { font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 2px 8px; border-radius: 99px; white-space: nowrap; border: 1px solid currentColor; }
+.chip.ok { color: var(--ok); }
+.chip.warn { color: var(--warn); }
+.chip.wait { color: var(--wait); }
+.chip.muted { color: var(--muted); }
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 14px; white-space: nowrap; }
+.time { font-family: var(--font-mono); color: var(--red-soft); width: 52px; flex: none; }
+.progress { height: 4px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--red); }
+.empty { color: var(--muted); font-size: 14px; padding: 4px 0; }
+.note { color: var(--muted); font-size: 13px; }
+.row-btn { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: none; border-radius: 0; color: inherit; font-weight: inherit; font-size: inherit; text-align: left; white-space: normal; padding: 0; }
+.row-btn:hover { filter: none; }
+.row-btn:hover .chev { color: var(--red-soft); }
+.chev { color: var(--muted); font-size: 22px; line-height: 1; flex: none; width: 12px; text-align: center; }
+ul.list > li:has(.row-btn) { padding: 0; }
+ul.list > li > .row-btn { padding: 11px 0; }
+.open-head { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; }
+.detail { display: grid; gap: 10px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+.detail dl { display: grid; grid-template-columns: minmax(110px, auto) 1fr; gap: 6px 14px; margin: 0; }
+.detail dt { color: var(--muted); font-size: 13px; }
+.detail dd { margin: 0; overflow-wrap: anywhere; }
+.detail .note { margin: 0; }
+a.sheet-link { color: var(--red-soft); font-weight: 600; justify-self: start; }
+
+/* Bottom tab bar */
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.tabbar nav { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: var(--tabbar-h); }
+.tabbar button { background: none; border: none; border-radius: 0; color: var(--muted); display: grid; justify-items: center; align-content: center; gap: 3px; padding: 6px 2px; font-size: 11px; font-weight: 600; letter-spacing: .02em; position: relative; }
+.tabbar button svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.tabbar button[aria-current="page"] { color: var(--fg); }
+.tabbar button[aria-current="page"]::before { content: ""; position: absolute; top: 0; left: 25%; right: 25%; height: 2px; background: var(--red); }
+.tabbar button[aria-current="page"] svg { stroke: var(--red-soft); }
+footer { color: var(--muted); font-size: 12px; padding-block: 8px 16px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .page { animation: none; } }
+body { margin: 0; padding-top: env(safe-area-inset-top, 0px); }
+.loading { min-height: 70vh; display: grid; place-content: center; gap: 10px; text-align: center; color: var(--muted); }
+.loading b { font-family: var(--font-display); font-size: 40px; color: var(--fg); font-weight: 600; }
+.install { display: grid; gap: 8px; border-color: color-mix(in srgb, var(--red) 55%, var(--line)); }
+.install p { margin: 0; font-size: 14px; color: var(--muted); }
+.install .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red-soft); flex: none; }
+.install p { color: var(--fg); }
+button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px; align-items: center; justify-content: center; }
+.steps { margin: 0; padding-left: 22px; display: grid; gap: 10px; font-size: 15px; }
+.steps .sub { display: block; }
+.share-arrow { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--tabbar-h) + 8px); transform: translateX(-50%); z-index: 25; font-size: 34px; color: var(--red-soft); animation: bob 1.2s ease-in-out infinite; pointer-events: none; }
+@keyframes bob { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 10px); } }
+@media (prefers-reduced-motion: reduce) { .share-arrow { animation: none; } }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 12px); z-index: 30; background: var(--surface-2); border: 1px solid var(--line); border-radius: 99px; padding: 6px 14px; font-size: 13px; color: var(--fg); max-width: calc(100% - 32px); text-align: center; }
+.toast.err { border-color: var(--warn); color: var(--warn); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast" hidden></div>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const eur = (n) => (Math.round((Number(n) || 0) * 100) / 100).toLocaleString("sk-SK", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " €";
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const fmtDate = (d) => d ? new Date(d + "T00:00").toLocaleDateString("sk-SK", { day: "numeric", month: "numeric" }) : "";
+  const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+  // Data lives in the class's Google sheet behind an Apps Script API; the last copy is cached on the phone so the app opens instantly.
+  const API_URL = "https://script.google.com/macros/s/AKfycbzjukTBA0E48EMh74ctzpVtZHlAlEvtqai_Ta3pxeMkxiMnJ7unDuE8dNkAiWOMwmBv/exec";
+  let cached = null;
+  try { cached = JSON.parse(store.get("stuzkova-data") || "null"); } catch (e) {}
+  let data = (cached && cached.data) || { settings: {}, tasks: [], students: [], teachers: [], allergies: [], program: [], expenses: [] };
+  let version = (cached && cached.version) || "", pending = null, loaded = !!cached;
+  function normalize() {
+    data.settings = data.settings || {};
+    ["tasks", "students", "teachers", "allergies", "program", "expenses", "log"].forEach((k) => { data[k] = Array.isArray(data[k]) ? data[k] : []; });
+    data.teachers.forEach((t) => { t.invited = { "Áno": "Pozvaný", "Nevyriešené": "Nepozvaný", "Nie": "Nepozýva sa" }[t.invited] || t.invited || "Nepozvaný"; });
+  }
+  normalize();
+
+  async function call(fn, ...args) {
+    const r = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ fn, args }) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || "Server neodpovedá");
+    return j.result;
+  }
+
+  const TABS = [
+    { id: "domov", label: "Domov", icon: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>' },
+    { id: "ulohy", label: "Úlohy", icon: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>' },
+    { id: "hostia", label: "Hostia", icon: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5a3 3 0 010 6M18 14c2 .8 3 3 3 6"/>' },
+    { id: "napoje", label: "Nápoje", icon: '<path d="M7 3h10l-1 7a4 4 0 01-8 0z"/><path d="M12 14v7M8 21h8"/>' },
+    { id: "peniaze", label: "Peniaze", icon: '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9v.01M18 15v.01"/>' },
+  ];
+  const STATUSES = ["Nezačaté", "Prebieha", "Čaká sa", "Hotové"];
+  const INVITE = ["Nepozvaný", "Pozvaný", "Nepozýva sa"];
+  const statusChip = (s) => '<span class="chip ' + ({ "Hotové": "ok", "Prebieha": "wait", "Čaká sa": "muted" }[s] || "warn") + '">' + esc(s || "Nezačaté") + "</span>";
+  const inviteChip = (v) => '<span class="chip ' + (v === "Pozvaný" ? "ok" : v === "Nepozýva sa" ? "muted" : "warn") + '">' + esc(v || "Nepozvaný") + "</span>";
+
+  // [key, label, type]: type is "text" (default), "number", "date", "time", "people" (text with name suggestions) or a list of options.
+  const SCHEMA = {
+    tasks: [["title", "Úloha"], ["who", "Zodpovedná osoba", "people"], ["price", "Cena (€)", "number"], ["due", "Termín", "date"], ["status", "Stav", STATUSES], ["note", "Poznámky / kontakt"]],
+    students: [["name", "Meno žiaka"], ["parent1", "Meno rodiča 1"], ["parent2", "Meno rodiča 2"], ["plusOne", "Meno +1 (prázdne = bez +1)"]],
+    drinks: [["alc", "Alkohol – čo si želáš"], ["alcQty", "Alkohol – množstvo"], ["soft", "Nealko – čo si želáš"], ["softQty", "Nealko – množstvo"], ["drinkNote", "Poznámka"]],
+    money: [["agreed", "Dohodnutá suma (€)", "number"], ["paid", "Zaplatené spolu (€)", "number"], ["addPay", "Pridať novú platbu (€)", "number"]],
+    teachers: [["name", "Meno a priezvisko"], ["role", "Funkcia / pozícia"], ["note", "Trieda / poznámka"], ["invited", "Pozvánka", INVITE]],
+    allergies: [["name", "Meno hosťa / žiaka", "people"], ["allergen", "Alergén / obmedzenie"], ["severity", "Závažnosť / reakcia"], ["confirmed", "Potvrdené s cateringom?", ["Nie", "Áno"]], ["note", "Poznámka"]],
+    expenses: [["name", "Položka"], ["amount", "Suma (€)", "number"], ["state", "Zaplatené?", ["Nie", "Áno", "Záloha"]], ["note", "Poznámka"]],
+    program: [["time", "Čas", "time"], ["title", "Bod programu"]],
+  };
+  const COLLECTION = { drinks: "students", money: "students" };
+  const NUMERIC = new Set(["price", "agreed", "paid", "addPay", "amount"]);
+
+  const ui = { tab: "domov", dir: 1, guestView: "rodina", taskFilter: "open", edit: null, editingSettings: false, busy: false };
+  try { const h = location.hash.slice(1); const s = store.get("stuzkova-tab"); if (TABS.some((t) => t.id === h)) ui.tab = h; else if (TABS.some((t) => t.id === s)) ui.tab = s; } catch (e) {}
+
+  /* ---------- Derived numbers ---------- */
+  const agreedOf = (s) => (s.agreed === "" || s.agreed == null) ? (Number(data.settings.fee) || 0) : Number(s.agreed) || 0;
+  function totals() {
+    const st = data.students;
+    const parents = st.reduce((n, s) => n + (s.parent1 ? 1 : 0) + (s.parent2 ? 1 : 0), 0);
+    const plus = st.filter((s) => s.plusOne).length;
+    const agreed = st.reduce((n, s) => n + agreedOf(s), 0);
+    const paid = st.reduce((n, s) => n + (Number(s.paid) || 0), 0);
+    const owing = st.filter((s) => agreedOf(s) > 0 && (Number(s.paid) || 0) < agreedOf(s)).length;
+    const invited = data.teachers.filter((t) => t.invited === "Pozvaný").length;
+    const done = data.tasks.filter((t) => t.status === "Hotové").length;
+    const costs = data.tasks.reduce((n, t) => n + (Number(t.price) || 0), 0);
+    const spent = data.expenses.reduce((n, e) => n + (Number(e.amount) || 0), 0);
+    return { parents, plus, guests: parents + plus, agreed, paid, owing, invited, done, costs, spent };
+  }
+
+  /* ---------- Saving ---------- */
+  let toastTimer = null;
+  function toast(msg, err) {
+    const el = $("toast"); el.textContent = msg; el.className = "toast" + (err ? " err" : ""); el.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, err ? 6000 : 2200);
+  }
+  function applyServer(res, announce) {
+    const before = data.log && data.log[0] ? data.log[0].at : 0;
+    data = res.data; version = res.version; loaded = true; normalize(); store.set("stuzkova-data", JSON.stringify(res));
+    if (!announce || !before) return;
+    const me = whoAmI();
+    const fresh = data.log.filter((l) => l.at > before && l.by !== me);
+    if (fresh.length === 1) toast("🔔 " + logText(fresh[0]));
+    else if (fresh.length > 1) toast("🔔 " + fresh.length + " nové zmeny, pozri Čo je nové na Domove");
+  }
+  const ACTION = { "pridanie": "pridal", "úprava": "upravil", "zmazanie": "zmazal" };
+  const logText = (l) => (l.by || "Niekto") + " " + (ACTION[l.action] || l.action) + " · " + l.part + (l.item && l.part !== "Nastavenia" ? ": " + l.item : "");
+  function ago(t) {
+    const m = Math.round((Date.now() - t) / 60000);
+    if (m < 1) return "teraz"; if (m < 60) return "pred " + m + " min";
+    const h = Math.round(m / 60); if (h < 24) return "pred " + h + " h";
+    return new Date(t).toLocaleDateString("sk-SK", { day: "numeric", month: "numeric" });
+  }
+  async function persist(fn, args, ok) {
+    ui.busy = true; toast("Ukladám…");
+    try { applyServer(await call(fn, ...args)); toast(ok || "Uložené"); }
+    catch (e) { toast("Uloženie zlyhalo: " + ((e && e.message) || "skús to znova") + ".", true); }
+    ui.busy = false; render();
+  }
+  const whoAmI = () => store.get("stuzkova-meno") || "";
+
+  /* ---------- Rows and editors ---------- */
+  function editorHTML(kind, item) {
+    const isNew = !item;
+    item = item || {};
+    const fields = SCHEMA[kind].map(([k, label, type], i) => {
+      const id = "ed-" + k;
+      const v = k === "addPay" ? "" : (item[k] ?? "");
+      if (Array.isArray(type)) return "<label>" + label + '<select id="' + id + '">' + type.map((o) => "<option" + (o === v ? " selected" : "") + ">" + esc(o) + "</option>").join("") + "</select></label>";
+      const t = type === "people" ? "text" : (type || "text");
+      return "<label>" + label + '<input id="' + id + '" type="' + t + '"' + (type === "people" ? ' list="dl-people" autocomplete="off"' : "") + (type === "number" ? ' min="0" step="any" inputmode="decimal"' : "") + ' value="' + esc(v) + '"' + (i === 0 && !COLLECTION[kind] ? " required" : "") + "></label>";
+    }).join("");
+    const canDelete = !isNew && (!COLLECTION[kind] || kind === "students");
+    return '<form class="editor" data-kind="' + kind + '" data-id="' + (isNew ? "" : esc(item.id)) + '">' + fields +
+      '<label>Kto upravuje<input id="ed-by" list="dl-people" autocomplete="off" required placeholder="tvoje meno" value="' + esc(whoAmI()) + '"></label>' +
+      '<div class="actions"><button type="submit"' + (ui.busy ? " disabled" : "") + ">" + (isNew ? "Pridať" : "Uložiť") + '</button><button type="button" class="ghost" data-act="cancel">Zavrieť</button><span class="spacer"></span>' +
+      (canDelete ? '<button type="button" class="danger" data-act="delete" data-kind="' + kind + '" data-id="' + esc(item.id) + '">' + (kind === "students" ? "Odstrániť žiaka" : "Zmazať") + "</button>" : "") +
+      "</div></form>";
+  }
+  const isOpen = (kind, id) => ui.edit && ui.edit.kind === kind && ui.edit.id === id;
+  const addBlock = (kind, label) => isOpen(kind, "") ? editorHTML(kind, null) : '<button type="button" class="ghost small" data-act="open" data-kind="' + kind + '" data-id="">+ ' + label + "</button>";
+  function row(kind, item, inner) {
+    if (isOpen(kind, item.id)) return '<li class="editing"><div class="open-head">' + inner + "</div>" + editorHTML(kind, item) + "</li>";
+    return '<li><button type="button" class="row-btn" data-act="open" data-kind="' + kind + '" data-id="' + esc(item.id) + '">' + inner + '<span class="chev" aria-hidden="true">›</span></button></li>';
+  }
+  const pageWrap = (inner) => '<div class="wrap page' + (ui.dir < 0 ? " from-left" : "") + '">' + inner + "</div>";
+
+  /* ---------- Pages ---------- */
+  function pageDomov() {
+    const s = data.settings, t = totals();
+    const d = s.date ? new Date(s.date) : null;
+    const parts = [];
+    if (d && !isNaN(d)) parts.push(d.toLocaleString("sk-SK", { weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }));
+    if (s.venue) parts.push(s.venue);
+    let html = '<header class="hero"><div class="wrap"><div><div class="eyebrow">Stužková slávnosť</div><h1>' +
+      (s.className ? "Stužková <em>" + esc(s.className) + "</em>" : "Naša <em>stužková</em>") + "</h1></div>" +
+      '<div class="meta">' + parts.map((p) => "<span>" + esc(p) + "</span>").join("") + "</div>" +
+      '<div class="count" id="count"></div>' +
+      (ui.editingSettings ? "" : '<div class="org"><button class="ghost small" type="button" data-act="settings">Upraviť dátum, miesto a sumu</button></div>');
+    if (ui.editingSettings) {
+      html += '<form class="editor" id="f-settings" style="text-align:left;width:100%">' +
+        '<label>Trieda<input id="s-class" value="' + esc(s.className) + '"></label>' +
+        '<label>Dátum a čas<input id="s-date" type="datetime-local" value="' + esc(s.date) + '"></label>' +
+        '<label>Miesto<input id="s-venue" placeholder="napr. názov sály" value="' + esc(s.venue) + '"></label>' +
+        '<label>Predvolená suma na žiaka (€)<input id="s-fee" type="number" min="0" step="any" inputmode="decimal" value="' + esc(s.fee) + '"></label>' +
+        '<label>Kto upravuje<input id="s-by" list="dl-people" autocomplete="off" required value="' + esc(whoAmI()) + '"></label>' +
+        '<div class="actions"><button type="submit">Uložiť</button><button type="button" class="ghost" data-act="settings-cancel">Zrušiť</button></div></form>';
+    }
+    html += "</div></header>";
+    let body = '<section><h3>Prehľad</h3><div class="stats">' +
+      '<button class="stat" type="button" data-go="ulohy"><b>' + t.done + "/" + data.tasks.length + "</b><span>úloh hotových</span></button>" +
+      '<button class="stat" type="button" data-go="hostia"><b>' + t.guests + "</b><span>hostí (rodičia a +1)</span></button>" +
+      '<button class="stat" type="button" data-go="hostia" data-guest="ucitelia"><b>' + t.invited + "/" + data.teachers.length + "</b><span>učiteľov pozvaných</span></button>" +
+      '<button class="stat" type="button" data-go="peniaze"><b>' + eur(t.paid) + "</b><span>vybrané od triedy</span></button></div></section>";
+    const seen = Number(store.get("stuzkova-seen") || 0);
+    const news = data.log.slice(0, ui.newsAll ? 30 : 5);
+    const unseen = data.log.filter((l) => l.at > seen).length;
+    body += '<section><h3>Čo je nové' + (unseen ? ' <span class="chip warn">' + unseen + " nové</span>" : "") + "</h3>" +
+      (news.length ? '<ul class="list">' + news.map((l) => '<li><div class="grow">' + esc(logText(l)) + '<div class="sub">' + ago(l.at) + "</div></div>" + (l.at > seen ? '<span class="dot" aria-label="nové"></span>' : "") + "</li>").join("") + "</ul>" +
+        '<div class="row" style="display:flex;gap:8px;flex-wrap:wrap">' + (data.log.length > 5 && !ui.newsAll ? '<button type="button" class="ghost small" data-act="news-all">Zobraziť viac</button>' : "") + (unseen ? '<button type="button" class="ghost small" data-act="news-seen">Označiť ako prečítané</button>' : "") + "</div>"
+        : '<div class="empty">Zatiaľ nikto nič nezmenil.</div>') + "</section>";
+    const today = new Date().toISOString().slice(0, 10);
+    const upcoming = data.tasks.filter((x) => x.due && x.status !== "Hotové").sort((a, b) => a.due.localeCompare(b.due)).slice(0, 4);
+    if (upcoming.length) body += '<section><h3>Najbližšie termíny</h3><ul class="list">' + upcoming.map((x) => row("tasks", x, '<span class="num" style="width:52px;flex:none;color:' + (x.due < today ? "var(--warn)" : "var(--red-soft)") + '">' + fmtDate(x.due) + '</span><div class="grow">' + esc(x.title) + (x.who ? '<div class="sub">' + esc(x.who) + "</div>" : "") + "</div>" + statusChip(x.status))).join("") + "</ul></section>";
+    const k = (v) => { const [h, m] = String(v).split(":").map(Number); return (h < 6 ? 1440 : 0) + (h || 0) * 60 + (m || 0); };
+    const prog = [...data.program].sort((a, b) => k(a.time) - k(b.time));
+    body += "<section><h3>Program večera</h3>" + (prog.length ? '<ul class="list">' + prog.map((p) => row("program", p, '<span class="time">' + esc(p.time) + '</span><div class="grow">' + esc(p.title) + "</div>")).join("") + "</ul>" : '<div class="empty">Program večera ešte nie je zverejnený.</div>') + addBlock("program", "Pridať bod programu") + "</section>";
+    return html + pageWrap(body);
+  }
+
+  function pageUlohy() {
+    const all = data.tasks;
+    const done = all.filter((t) => t.status === "Hotové").length;
+    const f = ui.taskFilter;
+    const shown = all.filter((t) => f === "all" || (f === "done" ? t.status === "Hotové" : f === "free" ? !t.who && t.status !== "Hotové" : t.status !== "Hotové"));
+    const today = new Date().toISOString().slice(0, 10);
+    let html = '<div class="page-head"><h2>Úlohy</h2><p>' + done + " z " + all.length + " hotových · klikni na úlohu a doplň cenu, termín, stav alebo poznámku</p></div>" +
+      '<div class="progress" aria-hidden="true"><i style="width:' + (all.length ? done / all.length * 100 : 0) + '%"></i></div>' +
+      '<div class="seg" role="group" aria-label="Filter úloh">' + [["open", "Otvorené"], ["free", "Bez zodpovedného"], ["done", "Hotové"], ["all", "Všetky"]].map(([k, l]) => '<button type="button" data-taskfilter="' + k + '" aria-pressed="' + (f === k) + '">' + l + "</button>").join("") + "</div><section>";
+    html += shown.length ? '<ul class="list">' + shown.map((t) => {
+      const late = t.status !== "Hotové" && t.due && t.due < today;
+      const sub = [t.who ? esc(t.who) : '<span style="color:var(--warn)">nikto nepriradený</span>', t.due && ("do " + fmtDate(t.due)), Number(t.price) ? eur(t.price) : "", t.note && esc(t.note)].filter(Boolean).join(" · ");
+      return row("tasks", t, '<div class="grow">' + esc(t.title) + '<div class="sub">' + sub + "</div></div>" + (late ? '<span class="chip warn">po termíne</span>' : statusChip(t.status)));
+    }).join("") + "</ul>" : '<div class="empty">' + (f === "done" ? "Zatiaľ nič hotové." : "Nič tu nie je.") + "</div>";
+    return pageWrap(html + addBlock("tasks", "Pridať úlohu") + "</section>");
+  }
+
+  function pageHostia() {
+    const t = totals(), v = ui.guestView;
+    let html = '<div class="page-head"><h2>Hostia</h2><p>' + data.students.length + " žiakov · " + t.parents + " rodičov · " + t.plus + " +1 · " + t.invited + "/" + data.teachers.length + " učiteľov pozvaných</p></div>" +
+      '<div class="seg" role="group" aria-label="Časť">' + [["rodina", "Rodičia a +1"], ["ucitelia", "Učitelia"], ["alergeny", "Alergény"]].map(([k, l]) => '<button type="button" data-guestview="' + k + '" aria-pressed="' + (v === k) + '">' + l + "</button>").join("") + "</div>";
+    if (v === "rodina") {
+      html += '<section><h3>Hostia žiakov <span class="num">' + t.guests + " spolu</span></h3><p class=\"note\" style=\"margin:0\">Klikni na svoje meno a dopíš rodičov a +1.</p><ul class=\"list\">" + [...data.students].sort((a, b) => a.name.localeCompare(b.name, "sk")).map((s) => {
+        const n = (s.parent1 ? 1 : 0) + (s.parent2 ? 1 : 0) + (s.plusOne ? 1 : 0);
+        const who = [s.parent1, s.parent2].filter(Boolean).map(esc).join(", ");
+        const sub = [who && "rodičia: " + who, s.plusOne && "+1: " + esc(s.plusOne)].filter(Boolean).join(" · ") || "ešte nevyplnené";
+        return row("students", s, '<div class="grow">' + esc(s.name) + '<div class="sub">' + sub + '</div></div><span class="num">' + (n ? "+" + n : "–") + "</span>");
+      }).join("") + "</ul>" + addBlock("students", "Pridať žiaka") + "</section>";
+    } else if (v === "ucitelia") {
+      const order = { "Nepozvaný": 0, "Pozvaný": 1, "Nepozýva sa": 2 };
+      const notYet = data.teachers.filter((u) => u.invited === "Nepozvaný").length;
+      html += '<section><h3>Pozvánky pre učiteľov <span class="num">' + t.invited + " pozvaných · " + notYet + " ešte nie</span></h3><ul class=\"list\">" + [...data.teachers].sort((a, b) => (order[a.invited] ?? 0) - (order[b.invited] ?? 0)).map((u) =>
+        row("teachers", u, '<div class="grow">' + esc(u.name) + '<div class="sub">' + [esc(u.role), esc(u.note)].filter(Boolean).join(" · ") + "</div></div>" + inviteChip(u.invited))).join("") + "</ul>" + addBlock("teachers", "Pridať učiteľa") + "</section>";
+    } else {
+      html += '<section><h3>Alergény a stravovanie</h3><p class="note" style="margin:0">Zapíšte iba overené informácie. Každé obmedzenie treba potvrdiť priamo s cateringom.</p>' +
+        (data.allergies.length ? '<ul class="list">' + data.allergies.map((a) => row("allergies", a, '<div class="grow">' + esc(a.name) + '<div class="sub">' + [esc(a.allergen), esc(a.severity), esc(a.note)].filter(Boolean).join(" · ") + "</div></div>" +
+          '<span class="chip ' + (a.confirmed === "Áno" ? "ok" : "warn") + '">' + (a.confirmed === "Áno" ? "potvrdené" : "nepotvrdené") + "</span>")).join("") + "</ul>" : '<div class="empty">Zatiaľ nikto nenahlásil alergiu ani špeciálnu stravu.</div>') +
+        addBlock("allergies", "Pridať alergiu") +
+        '<p class="note" style="margin:0">14 alergénov podľa EÚ: lepok, kôrovce, vajcia, ryby, arašidy, sója, mlieko, orechy, zeler, horčica, sezam, siričitany, vlčí bôb, mäkkýše.</p></section>';
+    }
+    return pageWrap(html);
+  }
+
+  function pageNapoje() {
+    const filled = data.students.filter((s) => s.alc || s.soft);
+    let html = '<div class="page-head"><h2>Nápoje</h2><p>' + filled.length + " z " + data.students.length + " žiakov vyplnilo. Klikni na svoje meno a zapíš, čo chceš piť a koľko.</p></div><section>";
+    html += '<ul class="list">' + [...data.students].sort((a, b) => a.name.localeCompare(b.name, "sk")).map((s) => {
+      const alc = s.alc ? esc(s.alc) + (s.alcQty ? " (" + esc(s.alcQty) + ")" : "") : "";
+      const soft = s.soft ? esc(s.soft) + (s.softQty ? " (" + esc(s.softQty) + ")" : "") : "";
+      const sub = [alc && "alko: " + alc, soft && "nealko: " + soft].filter(Boolean).join(" · ");
+      return row("drinks", s, '<div class="grow">' + esc(s.name) + '<div class="sub">' + (sub || "ešte nevyplnené") + "</div></div>" + (sub ? '<span class="chip ok">vyplnené</span>' : ""));
+    }).join("") + "</ul>";
+    return pageWrap(html + "</section>");
+  }
+
+  function pagePeniaze() {
+    const t = totals();
+    let html = '<div class="page-head"><h2>Peniaze</h2><p>Kto koľko zaplatil, koľko ešte chýba a na čo sa minulo.</p></div>' +
+      '<section><div class="stats">' +
+      '<div class="stat"><b>' + eur(t.agreed) + "</b><span>dohodnuté spolu</span></div>" +
+      '<div class="stat"><b>' + eur(t.paid) + "</b><span>zaplatené</span></div>" +
+      '<div class="stat"><b' + (t.agreed - t.paid > 0 ? ' style="color:var(--warn)"' : "") + ">" + eur(Math.max(0, t.agreed - t.paid)) + "</b><span>zostáva doplatiť</span></div>" +
+      '<div class="stat"><b>' + t.owing + "</b><span>žiakov s doplatkom</span></div></div></section>";
+    html += '<section><h3>Platby spolužiakov</h3><p class="note" style="margin:0">Klikni na meno a zapíš dohodnutú sumu alebo novú platbu.' + (data.students.some((s) => agreedOf(s) > 0) ? "" : " Sumu pre všetkých naraz nastavíš na Domove.") + "</p>";
+    html += '<ul class="list">' + [...data.students].sort((a, b) => a.name.localeCompare(b.name, "sk")).map((s) => {
+      const ag = agreedOf(s), p = Number(s.paid) || 0;
+      const chip = !ag ? '<span class="chip muted">bez sumy</span>' : p >= ag ? '<span class="chip ok">zaplatené</span>' : '<span class="chip warn">chýba ' + eur(ag - p) + "</span>";
+      return row("money", s, '<div class="grow">' + esc(s.name) + '<div class="sub">' + eur(p) + (ag ? " z " + eur(ag) : "") + "</div></div>" + chip);
+    }).join("") + "</ul></section>";
+    const exps = [...data.expenses].sort((a, b) => (a.state === "Áno") - (b.state === "Áno") || (Number(b.amount) || 0) - (Number(a.amount) || 0));
+    html += '<section><h3>Výdavky <span class="num">' + eur(t.spent) + " · zostatok " + eur(t.paid - t.spent) + "</span></h3>" +
+      (exps.length ? '<ul class="list">' + exps.map((e) => row("expenses", e, '<div class="grow">' + esc(e.name) + (e.note ? '<div class="sub">' + esc(e.note) + "</div>" : "") + '</div><span class="num">' + eur(e.amount) + "</span>" +
+        '<span class="chip ' + (e.state === "Áno" ? "ok" : e.state === "Záloha" ? "wait" : "warn") + '">' + (e.state === "Áno" ? "zaplatené" : e.state === "Záloha" ? "záloha" : "nezaplatené") + "</span>")).join("") + "</ul>"
+        : '<div class="empty">Zatiaľ žiadne zapísané výdavky.' + (t.costs ? " Ceny pri úlohách spolu: " + eur(t.costs) + "." : "") + "</div>") +
+      addBlock("expenses", "Pridať výdavok") + "</section>";
+    return pageWrap(html);
+  }
+
+  /* ---------- Render ---------- */
+  function render() {
+    const active = document.activeElement && document.activeElement.id;
+    const pages = { domov: pageDomov, ulohy: pageUlohy, hostia: pageHostia, napoje: pageNapoje, peniaze: pagePeniaze };
+    const updated = data.updated ? new Date(data.updated).toLocaleString("sk-SK", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+    const people = [...new Set(["Všetci", ...data.students.map((s) => s.name), ...data.teachers.map((t) => t.name)])];
+    const main = !loaded ? '<div class="loading"><b>Stužková 4.NA</b><span>Načítavam údaje triedy…</span></div>' : installHTML() + pages[ui.tab]();
+    $("app").innerHTML = '<main id="main">' + main + "</main>" +
+      '<datalist id="dl-people">' + people.map((n) => '<option value="' + esc(n) + '"></option>').join("") + "</datalist>" +
+      '<footer><div class="wrap">' + (updated ? "Naposledy upravené " + esc(updated) + ". " : "") + "Zmeny od ostatných sa načítajú samy.</div></footer>" +
+      '<div class="tabbar"><nav aria-label="Sekcie">' + TABS.map((t) => '<button type="button" data-tab="' + t.id + '"' + (t.id === ui.tab ? ' aria-current="page"' : "") + '><svg viewBox="0 0 24 24" aria-hidden="true">' + t.icon + "</svg>" + t.label + "</button>").join("") + "</nav></div>";
+    renderCount();
+    if (active && $(active)) $(active).focus();
+  }
+  function go(tab) {
+    if (tab === ui.tab) return;
+    const i = TABS.findIndex((t) => t.id === tab), j = TABS.findIndex((t) => t.id === ui.tab);
+    ui.dir = i > j ? 1 : -1; ui.tab = tab; ui.edit = null; ui.editingSettings = false;
+    store.set("stuzkova-tab", tab);
+    render(); window.scrollTo(0, 0);
+    if (pending) { applyServer(pending); pending = null; render(); }
+  }
+  function renderCount() {
+    const el = $("count"); if (!el) return;
+    const d = data.settings.date ? new Date(data.settings.date) : null;
+    if (!d || isNaN(d)) { el.innerHTML = ""; return; }
+    let s = Math.floor((d - Date.now()) / 1000);
+    if (s <= 0) { el.innerHTML = '<div class="over"><b>Dnes je to tu</b><span>Užite si stužkovú</span></div>'; return; }
+    const days = Math.floor(s / 86400); s -= days * 86400;
+    const hours = Math.floor(s / 3600); s -= hours * 3600;
+    const mins = Math.floor(s / 60); s -= mins * 60;
+    const pad = (n) => String(n).padStart(2, "0");
+    el.innerHTML = [[days, "dní"], [pad(hours), "hodín"], [pad(mins), "minút"], [pad(s), "sekúnd"]].map(([n, l]) => "<div><b>" + n + "</b><span>" + l + "</span></div>").join("");
+  }
+
+  /* ---------- Events ---------- */
+  document.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    if (ui.busy) return;
+    const form = ev.target;
+    if (form.id === "f-settings") {
+      const by = $("s-by").value.trim(); store.set("stuzkova-meno", by);
+      const s = { className: $("s-class").value.trim(), date: $("s-date").value, venue: $("s-venue").value.trim(), fee: $("s-fee").value };
+      ui.editingSettings = false; data.settings = s;
+      persist("saveSettings", [s, by]);
+      return;
+    }
+    const kind = form.dataset.kind; if (!kind) return;
+    const col = COLLECTION[kind] || kind, id = form.dataset.id;
+    const by = $("ed-by").value.trim(); store.set("stuzkova-meno", by);
+    const vals = {};
+    SCHEMA[kind].forEach(([k]) => { vals[k] = $("ed-" + k).value.trim(); });
+    if ("addPay" in vals) { vals.paid = String((Number(vals.paid) || 0) + (Number(vals.addPay) || 0)); delete vals.addPay; }
+    const base = id ? data[col].find((x) => x.id === id) : { id: uid() };
+    if (!base) { toast("Táto položka medzitým zmizla. Obnov stránku.", true); return; }
+    const item = Object.assign({}, base, vals);
+    ui.edit = null;
+    // Optimistic: show the change right away, the server answer replaces it.
+    if (id) Object.assign(base, vals); else data[col].push(item);
+    persist("saveItem", [col, item, by], id ? "Uložené" : "Pridané");
+  });
+
+  document.addEventListener("click", (ev) => {
+    const tb = ev.target.closest("[data-tab]"); if (tb) { go(tb.dataset.tab); return; }
+    const g = ev.target.closest("[data-go]"); if (g) { if (g.dataset.guest) ui.guestView = g.dataset.guest; go(g.dataset.go); return; }
+    const tf = ev.target.closest("[data-taskfilter]"); if (tf) { ui.taskFilter = tf.dataset.taskfilter; render(); return; }
+    const gv = ev.target.closest("[data-guestview]"); if (gv) { ui.guestView = gv.dataset.guestview; ui.edit = null; render(); return; }
+    const el = ev.target.closest("[data-act]"); if (!el) return;
+    const act = el.dataset.act;
+    if (act === "open") {
+      const k = el.dataset.kind, id = el.dataset.id;
+      ui.edit = isOpen(k, id) ? null : { kind: k, id };
+      if (!ui.edit && pending) { applyServer(pending); pending = null; }
+      render();
+      const f = document.querySelector("form.editor");
+      if (f) f.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      return;
+    }
+    if (act === "cancel") { ui.edit = null; if (pending) { applyServer(pending); pending = null; } render(); return; }
+    if (act === "news-all") { ui.newsAll = true; render(); return; }
+    if (act === "news-seen") { store.set("stuzkova-seen", String(Date.now())); render(); return; }
+    if (act === "settings") { ui.editingSettings = true; render(); $("s-class").focus(); }
+    if (act === "settings-cancel") { ui.editingSettings = false; render(); }
+    if (act === "delete") {
+      const col = COLLECTION[el.dataset.kind] || el.dataset.kind, id = el.dataset.id;
+      if (el.dataset.confirm !== "1") { el.dataset.confirm = "1"; el.textContent = "Naozaj zmazať?"; return; }
+      const by = ($("ed-by") && $("ed-by").value.trim()) || whoAmI();
+      ui.edit = null;
+      data[col] = data[col].filter((x) => x.id !== id);
+      persist("deleteItem", [col, id, by], "Zmazané");
+    }
+  });
+
+  // Horizontal swipe switches tabs; ignored inside forms and segmented controls.
+  let touch = null;
+  document.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1 || e.target.closest("form, .seg, input, select")) { touch = null; return; }
+    touch = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+  }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (!touch) return;
+    const dx = e.changedTouches[0].clientX - touch.x, dy = e.changedTouches[0].clientY - touch.y;
+    const ok = Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && Date.now() - touch.t < 600;
+    touch = null;
+    if (!ok) return;
+    const i = TABS.findIndex((t) => t.id === ui.tab) + (dx < 0 ? 1 : -1);
+    if (i >= 0 && i < TABS.length) go(TABS[i].id);
+  }, { passive: true });
+
+  // Pick up other people's changes every 15 s while the page is visible; never clobber an open form.
+  setInterval(async () => {
+    if (document.hidden || ui.busy || !loaded) return;
+    try {
+      const v = await call("getVersion");
+      if (v === version) return;
+      const res = await call("getData");
+      if (ui.edit || ui.editingSettings) { pending = res; return; }
+      applyServer(res, true); render();
+    } catch (e) {}
+  }, 15000);
+
+  /* ---------- Home screen install ---------- */
+  // Android/Chrome can install with one tap (beforeinstallprompt); iOS only allows Safari's own Share → Add to Home Screen, so we guide it step by step.
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  const ua = navigator.userAgent;
+  const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const android = /android/i.test(ua);
+  const inApp = /Instagram|FBAN|FBAV|FB_IAB|Messenger|Line\/|Snapchat|TikTok/i.test(ua);
+  const iosSafari = ios && !/CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua) && !inApp;
+  let installEvt = null, installed = false;
+  window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; render(); });
+  window.addEventListener("appinstalled", () => { installed = true; installEvt = null; render(); });
+  const SHARE_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="vertical-align:-4px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5v10h14V11h-1"/></svg>';
+  const ADD_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="vertical-align:-4px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>';
+  function installHTML() {
+    if (standalone || installed || ui.tab !== "domov" || store.get("stuzkova-install-hide")) return "";
+    if (!(ios || android || installEvt)) return "";
+    let body;
+    if (inApp) {
+      body = "<p>Si v prehliadači Instagramu alebo Messengeru, odtiaľ sa appka na plochu pridať nedá.</p><p>Ťukni na <b>⋯</b> vpravo hore a vyber <b>Otvoriť v " + (ios ? "Safari" : "Chrome") + "</b>.</p>";
+    } else if (installEvt) {
+      body = '<p>Jedným ťuknutím si dáš stužkovú na plochu ako normálnu appku.</p><button type="button" class="big" data-act="install">' + ADD_ICON + " Pridať na plochu</button>";
+    } else if (iosSafari) {
+      body = '<ol class="steps"><li>Ťukni na ' + SHARE_ICON + " <b>Zdieľať</b> v Safari" + ' <span class="sub">(dole uprostred, alebo cez ⋯ vpravo dole)</span></li>' +
+        "<li>Posuň nižšie a vyber " + ADD_ICON + " <b>Pridať na plochu</b></li><li>Vpravo hore ťukni na <b>Pridať</b></li></ol>";
+    } else if (ios) {
+      body = "<p>Na iPhone sa appka pridáva cez <b>Safari</b>. Skopíruj odkaz a otvor ho v Safari, ukážem ti tam postup.</p>";
+    } else {
+      body = "<p>Ťukni na <b>⋮</b> vpravo hore v prehliadači a vyber <b>Pridať na plochu</b> alebo <b>Inštalovať aplikáciu</b>.</p>";
+    }
+    return '<div class="wrap" style="padding-top:12px"><section class="install"><h3>Daj si appku na plochu</h3>' + body +
+      '<div class="row"><button type="button" class="ghost small" data-act="install-hide">' + (installEvt ? "Teraz nie" : "Už ju mám / Teraz nie") + "</button></div></section></div>" +
+      (iosSafari && ui.tab === "domov" ? '<div class="share-arrow" aria-hidden="true">↓</div>' : "");
+  }
+  document.addEventListener("click", async (ev) => {
+    const el = ev.target.closest("[data-act]"); if (!el) return;
+    if (el.dataset.act === "install" && installEvt) { installEvt.prompt(); try { const c = await installEvt.userChoice; if (c && c.outcome === "accepted") installed = true; } catch (e) {} installEvt = null; render(); }
+    if (el.dataset.act === "install-hide") { store.set("stuzkova-install-hide", "1"); render(); }
+  });
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+  render();
+  setInterval(renderCount, 1000);
+  (async function first() {
+    try { applyServer(await call("getData")); render(); }
+    catch (e) { if (!loaded) { $("app").querySelector("#main").innerHTML = '<div class="loading"><b>Stužková 4.NA</b><span>Nepodarilo sa načítať údaje. Skontroluj internet a skús to znova.</span><button type="button" onclick="location.reload()">Skúsiť znova</button></div>'; } else toast("Zobrazujem posledné uložené údaje, server neodpovedá.", true); }
+  })();
+})();
+</script>
+</body>
+</html>
