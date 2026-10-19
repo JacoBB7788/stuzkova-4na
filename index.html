@@ -179,14 +179,32 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
   }
   normalize();
 
+  // Talk to the Apps Script API with plain GET (no preflight); if the browser still blocks it, fall back to JSONP via a script tag.
+  let jsonpSeq = 0;
+  function jsonp(url) {
+    return new Promise((res, rej) => {
+      const cb = "__stuzkova" + (++jsonpSeq) + Date.now().toString(36);
+      const el = document.createElement("script");
+      const done = (fn, v) => { clearTimeout(t); delete window[cb]; el.remove(); fn(v); };
+      const t = setTimeout(() => done(rej, new Error("server neodpovedá")), 30000);
+      window[cb] = (v) => done(res, v);
+      el.onerror = () => done(rej, new Error("chyba siete"));
+      el.src = url + "&callback=" + cb;
+      document.head.appendChild(el);
+    });
+  }
+  let useJsonp = store.get("stuzkova-jsonp") === "1";
   async function call(fn, ...args) {
-    const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 30000);
-    let r;
-    try { r = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ fn, args }), signal: ctl.signal }); }
-    catch (e) { throw new Error(e.name === "AbortError" ? "server neodpovedá" : "chyba siete"); }
-    finally { clearTimeout(timer); }
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.error || "Server neodpovedá");
+    const url = API_URL + "?api=" + encodeURIComponent(fn) + "&args=" + encodeURIComponent(JSON.stringify(args)) + "&t=" + Date.now();
+    let j;
+    if (!useJsonp) {
+      const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 30000);
+      try { j = await (await fetch(url, { signal: ctl.signal })).json(); }
+      catch (e) { if (e.name === "AbortError") throw new Error("server neodpovedá"); useJsonp = true; store.set("stuzkova-jsonp", "1"); }
+      finally { clearTimeout(timer); }
+    }
+    if (!j) j = await jsonp(url);
+    if (!j || !j.ok) throw new Error((j && j.error) || "server neodpovedá");
     return j.result;
   }
 
