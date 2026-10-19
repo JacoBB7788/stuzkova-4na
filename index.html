@@ -171,7 +171,7 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
   let cached = null;
   try { cached = JSON.parse(store.get("stuzkova-data") || "null"); } catch (e) {}
   let data = (cached && cached.data) || { settings: {}, tasks: [], students: [], teachers: [], allergies: [], program: [], expenses: [] };
-  let version = (cached && cached.version) || "", pending = null, loaded = !!cached;
+  let version = (cached && cached.version) || "", pending = null, loaded = !!cached, loadError = "";
   function normalize() {
     data.settings = data.settings || {};
     ["tasks", "students", "teachers", "allergies", "program", "expenses", "log"].forEach((k) => { data[k] = Array.isArray(data[k]) ? data[k] : []; });
@@ -180,7 +180,11 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
   normalize();
 
   async function call(fn, ...args) {
-    const r = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ fn, args }) });
+    const ctl = new AbortController(); const timer = setTimeout(() => ctl.abort(), 30000);
+    let r;
+    try { r = await fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ fn, args }), signal: ctl.signal }); }
+    catch (e) { throw new Error(e.name === "AbortError" ? "server neodpovedá" : "chyba siete"); }
+    finally { clearTimeout(timer); }
     const j = await r.json();
     if (!j.ok) throw new Error(j.error || "Server neodpovedá");
     return j.result;
@@ -415,7 +419,7 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
     const pages = { domov: pageDomov, ulohy: pageUlohy, hostia: pageHostia, napoje: pageNapoje, peniaze: pagePeniaze };
     const updated = data.updated ? new Date(data.updated).toLocaleString("sk-SK", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
     const people = [...new Set(["Všetci", ...data.students.map((s) => s.name), ...data.teachers.map((t) => t.name)])];
-    const main = !loaded ? '<div class="loading"><b>Stužková 4.NA</b><span>Načítavam údaje triedy…</span></div>' : installHTML() + pages[ui.tab]();
+    const main = !loaded ? '<div class="loading"><b>Stužková 4.NA</b><span>' + (loadError ? "Nepodarilo sa načítať údaje (" + esc(loadError) + "). Skúšam znova…" : "Načítavam údaje triedy…") + "</span>" + (loadError ? '<button type="button" onclick="location.reload()">Skúsiť hneď</button>' : "") + "</div>" : installHTML() + pages[ui.tab]();
     $("app").innerHTML = '<main id="main">' + main + "</main>" +
       '<datalist id="dl-people">' + people.map((n) => '<option value="' + esc(n) + '"></option>').join("") + "</datalist>" +
       '<footer><div class="wrap">' + (updated ? "Naposledy upravené " + esc(updated) + ". " : "") + "Zmeny od ostatných sa načítajú samy.</div></footer>" +
@@ -572,9 +576,14 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
 
   render();
   setInterval(renderCount, 1000);
+  // First load; until it succeeds, retry every 10 s and say why it failed.
   (async function first() {
-    try { applyServer(await call("getData")); render(); }
-    catch (e) { if (!loaded) { $("app").querySelector("#main").innerHTML = '<div class="loading"><b>Stužková 4.NA</b><span>Nepodarilo sa načítať údaje. Skontroluj internet a skús to znova.</span><button type="button" onclick="location.reload()">Skúsiť znova</button></div>'; } else toast("Zobrazujem posledné uložené údaje, server neodpovedá.", true); }
+    try { applyServer(await call("getData")); loadError = ""; render(); }
+    catch (e) {
+      loadError = e && e.name === "SyntaxError" ? "server neposlal údaje, skontroluj nasadenie skriptu" : (e && e.message) || "chyba siete";
+      if (loaded) toast("Zobrazujem posledné uložené údaje, server neodpovedá.", true);
+      else { render(); setTimeout(first, 10000); }
+    }
   })();
 })();
 </script>
