@@ -142,6 +142,13 @@ body { margin: 0; padding-top: env(safe-area-inset-top, 0px); }
 .install { display: grid; gap: 8px; border-color: color-mix(in srgb, var(--red) 55%, var(--line)); }
 .install p { margin: 0; font-size: 14px; color: var(--muted); }
 .install .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.pick-all { grid-column: 1 / -1; display: grid; gap: 14px; }
+.pick-group { display: grid; gap: 6px; }
+.pick { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.qty-btn { width: 36px; height: 36px; padding: 0; font-size: 20px; line-height: 1; flex: none; }
+input.qty { width: 52px; flex: none; text-align: center; padding: 6px 4px; font-family: var(--font-mono); }
+.pick-total { position: sticky; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px)); background: var(--surface-2); padding: 10px 0; border-top: 1px solid var(--red); font-size: 15px; }
+.pick-total b { font-family: var(--font-mono); color: var(--fg); }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red-soft); flex: none; }
 .install p { color: var(--fg); }
 button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px; align-items: center; justify-content: center; }
@@ -161,7 +168,7 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
 (function () {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const eur = (n) => (Math.round((Number(n) || 0) * 100) / 100).toLocaleString("sk-SK", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " €";
+  const eur = (n) => (Math.round((Number(n) || 0) * 100) / 100).toLocaleString("sk-SK", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const fmtDate = (d) => d ? new Date(d + "T00:00").toLocaleDateString("sk-SK", { day: "numeric", month: "numeric" }) : "";
   const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
@@ -174,7 +181,7 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
   let version = (cached && cached.version) || "", pending = null, loaded = !!cached, loadError = "";
   function normalize() {
     data.settings = data.settings || {};
-    ["tasks", "students", "teachers", "allergies", "program", "expenses", "log"].forEach((k) => { data[k] = Array.isArray(data[k]) ? data[k] : []; });
+    ["tasks", "students", "teachers", "allergies", "program", "expenses", "log", "catalog"].forEach((k) => { data[k] = Array.isArray(data[k]) ? data[k] : []; });
     data.teachers.forEach((t) => { t.invited = { "Áno": "Pozvaný", "Nevyriešené": "Nepozvaný", "Nie": "Nepozýva sa" }[t.invited] || t.invited || "Nepozvaný"; });
   }
   normalize();
@@ -224,7 +231,8 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
   const SCHEMA = {
     tasks: [["title", "Úloha"], ["who", "Zodpovedná osoba", "people"], ["price", "Cena (€)", "number"], ["due", "Termín", "date"], ["status", "Stav", STATUSES], ["note", "Poznámky / kontakt"]],
     students: [["name", "Meno žiaka"], ["parent1", "Meno rodiča 1"], ["parent2", "Meno rodiča 2"], ["plusOne", "Meno +1 (prázdne = bez +1)"]],
-    drinks: [["alc", "Alkohol – čo si želáš"], ["alcQty", "Alkohol – množstvo"], ["soft", "Nealko – čo si želáš"], ["softQty", "Nealko – množstvo"], ["drinkNote", "Poznámka"]],
+    drinks: [["drinkNote", "Poznámka k nápojom"]],
+    catalog: [["name", "Názov nápoja"], ["cat", "Kategória", ["Alko", "Nealko"]], ["price", "Cena za kus bez DPH (€)", "number"]],
     money: [["agreed", "Dohodnutá suma (€)", "number"], ["paid", "Zaplatené spolu (€)", "number"], ["addPay", "Pridať novú platbu (€)", "number"]],
     teachers: [["name", "Meno a priezvisko"], ["role", "Funkcia / pozícia"], ["note", "Trieda / poznámka"], ["invited", "Pozvánka", INVITE]],
     allergies: [["name", "Meno hosťa / žiaka", "people"], ["allergen", "Alergén / obmedzenie"], ["severity", "Závažnosť / reakcia"], ["confirmed", "Potvrdené s cateringom?", ["Nie", "Áno"]], ["note", "Poznámka"]],
@@ -284,6 +292,32 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
   }
   const whoAmI = () => store.get("stuzkova-meno") || "";
 
+  /* ---------- Drink orders ---------- */
+  // Each student's order is stored as JSON {catalogId: pieces}; prices come from the shared catalog (without VAT).
+  function orderOf(s) { try { const o = JSON.parse(s.order || "{}"); return o && typeof o === "object" ? o : {}; } catch (e) { return {}; } }
+  const catById = () => Object.fromEntries(data.catalog.map((c) => [c.id, c]));
+  function orderCost(o, cats) { cats = cats || catById(); return Object.keys(o).reduce((n, id) => n + (cats[id] ? (Number(cats[id].price) || 0) * (Number(o[id]) || 0) : 0), 0); }
+  function orderText(o, cats) {
+    return Object.keys(o).filter((id) => cats[id] && o[id] > 0).map((id) => o[id] + "× " + esc(cats[id].name)).join(", ");
+  }
+  function pickerHTML(s) {
+    const o = orderOf(s);
+    if (!data.catalog.length) return '<p class="note pick-all" style="margin:0">Ponuka nápojov je zatiaľ prázdna.</p>';
+    return '<div class="pick-all">' + ["Alko", "Nealko"].map((cat) => {
+      const items = data.catalog.filter((c) => c.cat === cat);
+      if (!items.length) return "";
+      return '<div class="pick-group"><h3>' + cat + "</h3>" + items.map((c) => '<div class="pick"><div class="grow">' + esc(c.name) + '<div class="sub">' + eur(c.price) + " / ks</div></div>" +
+        '<button type="button" class="ghost qty-btn" data-act="qty" data-id="' + esc(c.id) + '" data-d="-1" aria-label="Menej">−</button>' +
+        '<input class="qty" id="q-' + esc(c.id) + '" data-price="' + esc(c.price) + '" type="number" min="0" max="99" step="1" inputmode="numeric" value="' + (Number(o[c.id]) || 0) + '" aria-label="Počet kusov ' + esc(c.name) + '">' +
+        '<button type="button" class="ghost qty-btn" data-act="qty" data-id="' + esc(c.id) + '" data-d="1" aria-label="Viac">+</button></div>').join("") + "</div>";
+    }).join("") + '<div class="pick-total">Spolu za teba: <b id="pick-total">' + eur(orderCost(o)) + "</b> bez DPH</div></div>";
+  }
+  function updatePickTotal() {
+    const el = $("pick-total"); if (!el) return;
+    let n = 0; document.querySelectorAll("input.qty").forEach((i) => { n += (Number(i.dataset.price) || 0) * Math.max(0, Math.floor(Number(i.value) || 0)); });
+    el.textContent = eur(n);
+  }
+
   /* ---------- Rows and editors ---------- */
   function editorHTML(kind, item) {
     const isNew = !item;
@@ -296,7 +330,7 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
       return "<label>" + label + '<input id="' + id + '" type="' + t + '"' + (type === "people" ? ' list="dl-people" autocomplete="off"' : "") + (type === "number" ? ' min="0" step="any" inputmode="decimal"' : "") + ' value="' + esc(v) + '"' + (i === 0 && !COLLECTION[kind] ? " required" : "") + "></label>";
     }).join("");
     const canDelete = !isNew && (!COLLECTION[kind] || kind === "students");
-    return '<form class="editor" data-kind="' + kind + '" data-id="' + (isNew ? "" : esc(item.id)) + '">' + fields +
+    return '<form class="editor" data-kind="' + kind + '" data-id="' + (isNew ? "" : esc(item.id)) + '">' + (kind === "drinks" ? pickerHTML(item) : "") + fields +
       '<label>Kto upravuje<input id="ed-by" list="dl-people" autocomplete="off" required placeholder="tvoje meno" value="' + esc(whoAmI()) + '"></label>' +
       '<div class="actions"><button type="submit"' + (ui.busy ? " disabled" : "") + ">" + (isNew ? "Pridať" : "Uložiť") + '</button><button type="button" class="ghost" data-act="cancel">Zavrieť</button><span class="spacer"></span>' +
       (canDelete ? '<button type="button" class="danger" data-act="delete" data-kind="' + kind + '" data-id="' + esc(item.id) + '">' + (kind === "students" ? "Odstrániť žiaka" : "Zmazať") + "</button>" : "") +
@@ -397,14 +431,33 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
   }
 
   function pageNapoje() {
-    const filled = data.students.filter((s) => s.alc || s.soft);
-    let html = '<div class="page-head"><h2>Nápoje</h2><p>' + filled.length + " z " + data.students.length + " žiakov vyplnilo. Klikni na svoje meno a zapíš, čo chceš piť a koľko.</p></div><section>";
-    html += '<ul class="list">' + [...data.students].sort((a, b) => a.name.localeCompare(b.name, "sk")).map((s) => {
-      const alc = s.alc ? esc(s.alc) + (s.alcQty ? " (" + esc(s.alcQty) + ")" : "") : "";
-      const soft = s.soft ? esc(s.soft) + (s.softQty ? " (" + esc(s.softQty) + ")" : "") : "";
-      const sub = [alc && "alko: " + alc, soft && "nealko: " + soft].filter(Boolean).join(" · ");
-      return row("drinks", s, '<div class="grow">' + esc(s.name) + '<div class="sub">' + (sub || "ešte nevyplnené") + "</div></div>" + (sub ? '<span class="chip ok">vyplnené</span>' : ""));
-    }).join("") + "</ul>";
+    const cats = catById();
+    const orders = data.students.map((st) => ({ st, o: orderOf(st) }));
+    const filled = orders.filter((x) => Object.keys(x.o).some((id) => cats[id] && x.o[id] > 0));
+    let html = '<div class="page-head"><h2>Nápoje</h2><p>' + filled.length + " z " + data.students.length + " žiakov si vybralo. Klikni na svoje meno a nastav počet kusov z ponuky. Ceny sú za kus bez DPH.</p></div><section><h3>Objednávky žiakov</h3>";
+    html += '<ul class="list">' + orders.sort((a, b) => a.st.name.localeCompare(b.st.name, "sk")).map(({ st, o }) => {
+      const txt = orderText(o, cats), cost = orderCost(o, cats);
+      return row("drinks", st, '<div class="grow">' + esc(st.name) + '<div class="sub">' + (txt || "ešte nevybral") + (st.drinkNote ? " · " + esc(st.drinkNote) : "") + "</div></div>" + (cost ? '<span class="num">' + eur(cost) + "</span>" : ""));
+    }).join("") + "</ul></section>";
+    // Summary: per drink pieces and totals, with who ordered it.
+    let grand = 0;
+    const groups = ["Alko", "Nealko"].map((cat) => {
+      const lines = data.catalog.filter((c) => c.cat === cat).map((c) => {
+        const who = orders.filter((x) => Number(x.o[c.id]) > 0).map((x) => ({ name: x.st.name, n: Number(x.o[c.id]) }));
+        const pcs = who.reduce((n, w) => n + w.n, 0);
+        return { c, who, pcs, total: pcs * (Number(c.price) || 0) };
+      }).filter((l) => l.pcs > 0);
+      const sum = lines.reduce((n, l) => n + l.total, 0); grand += sum;
+      if (!lines.length) return "";
+      return '<h3>' + cat + ' <span class="num">' + eur(sum) + '</span></h3><ul class="list">' + lines.map((l) =>
+        '<li><div class="grow">' + esc(l.c.name) + '<div class="sub">' + l.pcs + " ks × " + eur(l.c.price) + " · " + l.who.map((w) => esc(w.name) + " " + w.n).join(", ") + '</div></div><span class="num">' + eur(l.total) + "</span></li>").join("") + "</ul>";
+    }).join("");
+    html += '<section><h3>Súhrn nákupu <span class="num">' + eur(grand) + " bez DPH</span></h3>" + (groups || '<div class="empty">Zatiaľ si nikto nič nevybral.</div>') +
+      (grand ? '<p class="note" style="margin:0">Spolu ' + eur(grand) + " bez DPH za " + filled.length + " žiakov.</p>" : "") + "</section>";
+    html += '<section><h3>Ponuka nápojov <button type="button" class="ghost small" data-act="toggle-catalog">' + (ui.showCatalog ? "Skryť" : "Upraviť ponuku (" + data.catalog.length + ")") + "</button></h3>";
+    if (ui.showCatalog) {
+      html += ["Alko", "Nealko"].map((cat) => '<h3>' + cat + '</h3><ul class="list">' + data.catalog.filter((c) => c.cat === cat).map((c) => row("catalog", c, '<div class="grow">' + esc(c.name) + '</div><span class="num">' + eur(c.price) + "</span>")).join("") + "</ul>").join("") + addBlock("catalog", "Pridať nápoj");
+    }
     return pageWrap(html + "</section>");
   }
 
@@ -483,10 +536,16 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
     const by = $("ed-by").value.trim(); store.set("stuzkova-meno", by);
     const vals = {};
     SCHEMA[kind].forEach(([k]) => { vals[k] = $("ed-" + k).value.trim(); });
+    if (kind === "drinks") {
+      const o = {};
+      form.querySelectorAll("input.qty").forEach((i) => { const n = Math.min(99, Math.max(0, Math.floor(Number(i.value) || 0))); if (n) o[i.id.slice(2)] = n; });
+      vals.order = JSON.stringify(o);
+    }
     if ("addPay" in vals) { vals.paid = String((Number(vals.paid) || 0) + (Number(vals.addPay) || 0)); delete vals.addPay; }
     const base = id ? data[col].find((x) => x.id === id) : { id: uid() };
     if (!base) { toast("Táto položka medzitým zmizla. Obnov stránku.", true); return; }
-    const item = Object.assign({}, base, vals);
+    // Existing rows send only the edited fields, so the server keeps whatever others changed meanwhile.
+    const item = id ? Object.assign({ id }, vals) : Object.assign({}, base, vals);
     ui.edit = null;
     // Optimistic: show the change right away, the server answer replaces it.
     if (id) Object.assign(base, vals); else data[col].push(item);
@@ -511,6 +570,12 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
     }
     if (act === "cancel") { ui.edit = null; if (pending) { applyServer(pending); pending = null; } render(); return; }
     if (act === "news-all") { ui.newsAll = true; render(); return; }
+    if (act === "toggle-catalog") { ui.showCatalog = !ui.showCatalog; ui.edit = null; render(); return; }
+    if (act === "qty") {
+      const i = $("q-" + el.dataset.id); if (!i) return;
+      i.value = Math.min(99, Math.max(0, (Math.floor(Number(i.value) || 0)) + Number(el.dataset.d)));
+      updatePickTotal(); return;
+    }
     if (act === "news-seen") { store.set("stuzkova-seen", String(Date.now())); render(); return; }
     if (act === "settings") { ui.editingSettings = true; render(); $("s-class").focus(); }
     if (act === "settings-cancel") { ui.editingSettings = false; render(); }
@@ -523,6 +588,8 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
       persist("deleteItem", [col, id, by], "Zmazané");
     }
   });
+
+  document.addEventListener("input", (ev) => { if (ev.target.classList && ev.target.classList.contains("qty")) updatePickTotal(); });
 
   // Horizontal swipe switches tabs; ignored inside forms and segmented controls.
   let touch = null;
