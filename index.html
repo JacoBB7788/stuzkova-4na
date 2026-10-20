@@ -142,6 +142,15 @@ body { margin: 0; padding-top: env(safe-area-inset-top, 0px); }
 .install { display: grid; gap: 8px; border-color: color-mix(in srgb, var(--red) 55%, var(--line)); }
 .install p { margin: 0; font-size: 14px; color: var(--muted); }
 .install .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.table-wrap { overflow-x: auto; margin: 0 -4px; }
+table.shop { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.shop th, table.shop td { padding: 7px 4px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+table.shop thead th { border-top: none; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+table.shop .r { text-align: right; white-space: nowrap; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+table.shop tr.cat th { padding-top: 14px; color: var(--red-soft); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+table.shop tr.kind td { color: var(--muted); font-size: 13px; border-top-style: dashed; }
+table.shop tr.sub-total td { font-weight: 700; }
+table.shop tr.grand td { font-weight: 700; font-size: 16px; border-top: 2px solid var(--red); padding-top: 10px; }
 .pick-all { grid-column: 1 / -1; display: grid; gap: 14px; }
 .pick-group { display: grid; gap: 6px; }
 .pick { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
@@ -300,6 +309,10 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
   function orderText(o, cats) {
     return Object.keys(o).filter((id) => cats[id] && o[id] > 0).map((id) => o[id] + "× " + esc(cats[id].name)).join(", ");
   }
+  // Drink kind for the shopping-list totals, read from the product name.
+  const KINDS = [["Vodka", /vodka/i], ["Borovička", /borovi/i], ["Gin", /gin\b/i], ["Jägermeister", /j[aä]germeister/i], ["Víno a sekt", /v[ií]no|hubert/i],
+    ["Limonády", /cola|sprite|fanta|kofola|kinley|tonic|schweppes/i], ["Voda", /baldovsk|mattoni|magnesia|voda/i]];
+  const kindOf = (c) => (KINDS.find(([, re]) => re.test(c.name)) || [c.cat === "Alko" ? "Iný alkohol" : "Iné nealko"])[0];
   function pickerHTML(s) {
     const o = orderOf(s);
     if (!data.catalog.length) return '<p class="note pick-all" style="margin:0">Ponuka nápojov je zatiaľ prázdna.</p>';
@@ -452,13 +465,40 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
       return '<h3>' + cat + ' <span class="num">' + eur(sum) + '</span></h3><ul class="list">' + lines.map((l) =>
         '<li><div class="grow">' + esc(l.c.name) + '<div class="sub">' + l.pcs + " ks × " + eur(l.c.price) + " · " + l.who.map((w) => esc(w.name) + " " + w.n).join(", ") + '</div></div><span class="num">' + eur(l.total) + "</span></li>").join("") + "</ul>";
     }).join("");
-    html += '<section><h3>Súhrn nákupu <span class="num">' + eur(grand) + " bez DPH</span></h3>" + (groups || '<div class="empty">Zatiaľ si nikto nič nevybral.</div>') +
-      (grand ? '<p class="note" style="margin:0">Spolu ' + eur(grand) + " bez DPH za " + filled.length + " žiakov.</p>" : "") + "</section>";
+    html += '<section><h3>Kto si čo zadal <span class="num">' + eur(grand) + " bez DPH</span></h3>" + (groups || '<div class="empty">Zatiaľ si nikto nič nevybral.</div>') + "</section>";
+    html += shoppingListHTML(orders);
     html += '<section><h3>Ponuka nápojov <button type="button" class="ghost small" data-act="toggle-catalog">' + (ui.showCatalog ? "Skryť" : "Upraviť ponuku (" + data.catalog.length + ")") + "</button></h3>";
     if (ui.showCatalog) {
       html += ["Alko", "Nealko"].map((cat) => '<h3>' + cat + '</h3><ul class="list">' + data.catalog.filter((c) => c.cat === cat).map((c) => row("catalog", c, '<div class="grow">' + esc(c.name) + '</div><span class="num">' + eur(c.price) + "</span>")).join("") + "</ul>").join("") + addBlock("catalog", "Pridať nápoj");
     }
     return pageWrap(html + "</section>");
+  }
+
+  // Shopping list: pieces and price per product, totals per kind and per Alko/Nealko, grand total.
+  function shoppingListHTML(orders) {
+    const lines = data.catalog.map((c) => {
+      const pcs = orders.reduce((n, x) => n + (Number(x.o[c.id]) || 0), 0);
+      return { c, pcs, total: pcs * (Number(c.price) || 0), kind: kindOf(c) };
+    }).filter((l) => l.pcs > 0);
+    if (!lines.length) return "";
+    const sumOf = (ls) => ({ pcs: ls.reduce((n, l) => n + l.pcs, 0), total: ls.reduce((n, l) => n + l.total, 0) });
+    const all = sumOf(lines);
+    let body = "";
+    ["Alko", "Nealko"].forEach((cat) => {
+      const ls = lines.filter((l) => l.c.cat === cat); if (!ls.length) return;
+      const kinds = [...new Set(ls.map((l) => l.kind))];
+      body += '<tr class="cat"><th colspan="4">' + cat + "</th></tr>";
+      kinds.forEach((k) => {
+        const kl = ls.filter((l) => l.kind === k).sort((a, b) => b.pcs - a.pcs), ks = sumOf(kl);
+        body += kl.map((l) => "<tr><td>" + esc(l.c.name) + '</td><td class="r">' + l.pcs + '</td><td class="r">' + eur(l.c.price) + '</td><td class="r">' + eur(l.total) + "</td></tr>").join("") +
+          (kl.length < 2 ? "" : '<tr class="kind"><td>' + esc(k) + ' spolu</td><td class="r">' + ks.pcs + ' ks</td><td></td><td class="r">' + eur(ks.total) + "</td></tr>");
+      });
+      const cs = sumOf(ls);
+      body += '<tr class="sub-total"><td>' + cat + ' spolu</td><td class="r">' + cs.pcs + ' ks</td><td></td><td class="r">' + eur(cs.total) + "</td></tr>";
+    });
+    body += '<tr class="grand"><td>Nákup spolu</td><td class="r">' + all.pcs + ' ks</td><td></td><td class="r">' + eur(all.total) + "</td></tr>";
+    return '<section><h3>Nákupný zoznam</h3><p class="note" style="margin:0">Koľko čoho kúpiť. Ceny za kus bez DPH.</p>' +
+      '<div class="table-wrap"><table class="shop"><thead><tr><th>Nápoj</th><th class="r">Ks</th><th class="r">Za kus</th><th class="r">Spolu</th></tr></thead><tbody>' + body + "</tbody></table></div></section>";
   }
 
   function pagePeniaze() {
