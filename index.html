@@ -128,7 +128,7 @@ a.sheet-link { color: var(--red-soft); font-weight: 600; justify-self: start; }
 
 /* Bottom tab bar */
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
-.tabbar nav { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: var(--tabbar-h); }
+.tabbar nav { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); height: var(--tabbar-h); }
 .tabbar button { background: none; border: none; border-radius: 0; color: var(--muted); display: grid; justify-items: center; align-content: center; gap: 3px; padding: 6px 2px; font-size: 11px; font-weight: 600; letter-spacing: .02em; position: relative; }
 .tabbar button svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .tabbar button[aria-current="page"] { color: var(--fg); }
@@ -152,6 +152,37 @@ ul.order .bar { height: 3px; background: var(--line); border-radius: 99px; margi
 ul.order .bar i { display: block; height: 100%; background: var(--red); }
 .order-total { display: flex; align-items: center; gap: 12px; border-color: var(--red); }
 .order-total b { font-family: var(--font-mono); font-size: 22px; white-space: nowrap; }
+.plan-wrap { padding: 8px; }
+svg.plan { width: 100%; height: auto; display: block; font-family: var(--font-body); }
+svg.plan .floor { fill: #120e10; }
+svg.plan .wall { fill: none; stroke: var(--fg); stroke-width: 6; opacity: .75; }
+svg.plan .window { stroke: #7fa6c4; stroke-width: 8; }
+svg.plan .door { stroke: var(--red-soft); stroke-width: 8; }
+svg.plan .room-label, svg.plan .small-label { fill: var(--muted); font-size: 16px; text-anchor: middle; }
+svg.plan .door-label { fill: var(--red-soft); font-size: 20px; font-weight: 700; text-anchor: middle; }
+svg.plan .terasa-label { fill: #7fa6c4; font-size: 16px; font-weight: 700; text-anchor: middle; }
+svg.plan .dj { fill: #2a1218; stroke: var(--red); stroke-width: 2; }
+svg.plan .dj-label { fill: var(--fg); font-family: var(--font-display); font-size: 36px; font-weight: 600; text-anchor: middle; }
+svg.plan .parket { fill: url(#none); fill: color-mix(in srgb, var(--red) 12%, #120e10); stroke: color-mix(in srgb, var(--red) 45%, transparent); stroke-width: 2; stroke-dasharray: 6 6; }
+svg.plan .parket-label { fill: var(--red-soft); font-size: 26px; font-weight: 700; letter-spacing: .1em; text-anchor: middle; }
+svg.plan .box, svg.plan .pillar { fill: #2a2326; stroke: var(--line); stroke-width: 2; }
+svg.plan .t-st { fill: #1e2a3a; stroke: #6f8fb8; stroke-width: 2; }
+svg.plan .t-long { fill: #f4ece8; stroke: var(--red); stroke-width: 2; }
+svg.plan .t-label { fill: #0a0809; font-size: 19px; font-weight: 700; text-anchor: middle; }
+svg.plan .t-label.v { fill: var(--fg); font-size: 17px; }
+svg.plan .seat { fill: #120e10; stroke: var(--fg); stroke-width: 2; opacity: .8; }
+svg.plan .seat.on { fill: var(--red); stroke: var(--red-soft); opacity: 1; }
+svg.plan .tbl { cursor: pointer; }
+svg.plan .tbl:hover rect, svg.plan .tbl:focus rect { stroke-width: 4; }
+svg.plan .tbl:focus { outline: none; }
+.legend { display: flex; gap: 16px; justify-content: center; font-size: 12px; color: var(--muted); padding-top: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.seat-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--muted); flex: none; display: inline-block; }
+.seat-dot.on { background: var(--red); border-color: var(--red-soft); }
+.pick-names { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; max-height: 260px; overflow-y: auto; }
+.chip-btn { background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 99px; padding: 6px 12px; font-size: 13px; font-weight: 600; display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1.25; white-space: normal; text-align: left; }
+.chip-btn small { font-weight: 500; font-size: 11px; color: var(--muted); }
+.chip-btn:hover { border-color: var(--red); }
 .table-wrap { overflow-x: auto; margin: 0 -4px; }
 table.shop { width: 100%; border-collapse: collapse; font-size: 14px; }
 table.shop th, table.shop td { padding: 7px 4px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
@@ -200,7 +231,7 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
   let version = (cached && cached.version) || "", pending = null, loaded = !!cached, loadError = "";
   function normalize() {
     data.settings = data.settings || {};
-    ["tasks", "students", "teachers", "allergies", "program", "expenses", "log", "catalog"].forEach((k) => { data[k] = Array.isArray(data[k]) ? data[k] : []; });
+    ["tasks", "students", "teachers", "allergies", "program", "expenses", "log", "catalog", "seats"].forEach((k) => { data[k] = Array.isArray(data[k]) ? data[k] : []; });
     data.teachers.forEach((t) => { t.invited = { "Áno": "Pozvaný", "Nevyriešené": "Nepozvaný", "Nie": "Nepozýva sa" }[t.invited] || t.invited || "Nepozvaný"; });
   }
   normalize();
@@ -238,6 +269,7 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
     { id: "domov", label: "Domov", icon: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>' },
     { id: "ulohy", label: "Úlohy", icon: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/>' },
     { id: "hostia", label: "Hostia", icon: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5a3 3 0 010 6M18 14c2 .8 3 3 3 6"/>' },
+    { id: "sala", label: "Sála", icon: '<rect x="3" y="4" width="18" height="16" rx="1"/><path d="M7 8v8M11 9h7M11 15h7"/><circle cx="5" cy="9" r=".6"/><circle cx="5" cy="15" r=".6"/>' },
     { id: "napoje", label: "Nápoje", icon: '<path d="M7 3h10l-1 7a4 4 0 01-8 0z"/><path d="M12 14v7M8 21h8"/>' },
     { id: "peniaze", label: "Peniaze", icon: '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9v.01M18 15v.01"/>' },
   ];
@@ -310,6 +342,22 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
     ui.busy = false; render();
   }
   const whoAmI = () => store.get("stuzkova-meno") || "";
+  // Seat someone; if they already sit elsewhere, that seat is freed first so nobody sits twice.
+  async function saveSeat(seatId, tableId, name, by) {
+    if (!name) return;
+    store.set("stuzkova-meno", by);
+    const t = TABLES.find((x) => x.id === tableId);
+    const prev = data.seats.find((x) => x.id !== seatId && x.name && x.name.trim().toLowerCase() === name.toLowerCase());
+    ui.edit = null;
+    data.seats = data.seats.filter((x) => x.id !== seatId && x !== prev).concat([{ id: seatId, name, table: t ? t.name : "" }]);
+    ui.busy = true; render(); toast("Ukladám…");
+    try {
+      if (prev) await call("deleteItem", "seats", prev.id, by);
+      applyServer(await call("saveItem", "seats", { id: seatId, name, table: t ? t.name : "" }, by));
+      toast(prev ? name + " presadený" : "Uložené");
+    } catch (e) { toast("Uloženie zlyhalo: " + ((e && e.message) || "skús to znova") + ".", true); }
+    ui.busy = false; render();
+  }
 
   /* ---------- Drink orders ---------- */
   // Each student's order is stored as JSON {catalogId: pieces}; prices come from the shared catalog (without VAT).
@@ -502,6 +550,111 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
     return pageWrap(html);
   }
 
+  /* ---------- Seating plan ---------- */
+  // Students sit along the window wall: 6 tables x 3 seats plus one seat at each joint. Three long tables: teachers and two for parents.
+  const TABLES = (() => {
+    const z = { id: "ziaci", name: "Žiaci", group: "students", seats: [] };
+    for (let i = 1; i <= 6; i++) {
+      for (let k = 1; k <= 3; k++) z.seats.push({ id: "z" + i + "-" + k, label: "Stôl " + i + ", miesto " + k });
+      if (i < 6) z.seats.push({ id: "zs" + i, label: "Spoj stolov " + i + " a " + (i + 1) });
+    }
+    const long = (id, name, group) => {
+      const seats = [{ id: id + "-L", label: "Čelo pri oknách" }];
+      for (let k = 1; k <= 12; k++) seats.push({ id: id + "-h" + k, label: "Horná strana, " + k + ". miesto" });
+      for (let k = 1; k <= 12; k++) seats.push({ id: id + "-d" + k, label: "Dolná strana, " + k + ". miesto" });
+      seats.push({ id: id + "-R", label: "Čelo pri parkete" });
+      return { id, name, group, seats };
+    };
+    return [z, long("ucitelia", "Učitelia", "teachers"), long("rodicia1", "Rodičia 1", "parents"), long("rodicia2", "Rodičia 2", "parents")];
+  })();
+  const GROUP_LABEL = { students: "žiakov a +1", teachers: "učiteľov", parents: "rodičov a +1" };
+  const seatMap = () => Object.fromEntries(data.seats.filter((x) => x.name).map((x) => [x.id, x]));
+  // Who may sit at a table of the given group, with a hint shown in the picker.
+  function peopleFor(group) {
+    const plusOnes = data.students.filter((s) => s.plusOne).map((s) => ({ name: s.plusOne, hint: "+1 · " + s.name }));
+    if (group === "students") return data.students.map((s) => ({ name: s.name, hint: "žiak" })).concat(plusOnes);
+    if (group === "teachers") return data.teachers.filter((t) => t.invited !== "Nepozýva sa").map((t) => ({ name: t.name, hint: t.role + (t.invited === "Pozvaný" ? "" : " · zatiaľ nepozvaný") }));
+    const out = [];
+    data.students.forEach((s) => {
+      [s.parent1, s.parent2].filter(Boolean).forEach((n) => out.push({ name: n, hint: "rodič · " + s.name }));
+      if (s.plusOne) out.push({ name: s.plusOne, hint: "+1 · " + s.name });
+    });
+    return out;
+  }
+
+  function planSVG(seats) {
+    const used = (id) => !!seats[id];
+    const count = (t) => t.seats.filter((x) => used(x.id)).length;
+    const seat = (id, x, y) => '<circle cx="' + x + '" cy="' + y + '" r="10" class="seat' + (used(id) ? " on" : "") + '"/>';
+    let g = "";
+    // Students: tables along the window wall, seats between the tables and the windows.
+    const z = TABLES[0], top = 70, th = 102;
+    g += '<g class="tbl" data-table="ziaci" role="button" tabindex="0" aria-label="Stôl žiakov">';
+    for (let i = 0; i < 6; i++) g += '<rect x="96" y="' + (top + i * th) + '" width="40" height="' + (th - 4) + '" class="t-st"/>';
+    let si = 0;
+    for (let i = 0; i < 6; i++) {
+      for (let k = 0; k < 3; k++) g += seat(z.seats[si++].id, 70, top + i * th + 18 + k * 30);
+      if (i < 5) g += seat(z.seats[si++].id, 70, top + (i + 1) * th - 2);
+    }
+    g += '<text x="116" y="' + (top + 3 * th) + '" class="t-label v" transform="rotate(-90 116 ' + (top + 3 * th) + ')">Žiaci · ' + count(z) + "/" + z.seats.length + "</text></g>";
+    // Long tables.
+    [[1, 210], [2, 380], [3, 550]].forEach(([ti, y]) => {
+      const t = TABLES[ti], x0 = 215, w = 380;
+      g += '<g class="tbl" data-table="' + t.id + '" role="button" tabindex="0" aria-label="Stôl ' + t.name + '">';
+      g += '<rect x="' + x0 + '" y="' + y + '" width="' + w + '" height="38" rx="3" class="t-long"/>';
+      g += seat(t.seats[0].id, x0 - 18, y + 19) + seat(t.seats[25].id, x0 + w + 18, y + 19);
+      for (let k = 0; k < 12; k++) { const x = x0 + 16 + k * 31.6; g += seat(t.seats[1 + k].id, x, y - 16) + seat(t.seats[13 + k].id, x, y + 54); }
+      g += '<text x="' + (x0 + w / 2) + '" y="' + (y + 25) + '" class="t-label">' + t.name + " · " + count(t) + "/26</text></g>";
+    });
+    return '<svg class="plan" viewBox="0 0 1000 760" role="img" aria-label="Plán sály">' +
+      '<rect x="30" y="40" width="940" height="690" class="floor"/>' +
+      '<path d="M30 40H970V730H360M240 730H30Z" class="wall"/>' +
+      [[90, 210], [270, 410], [470, 640]].map(([a, b]) => '<line x1="30" y1="' + a + '" x2="30" y2="' + b + '" class="window"/>').join("") +
+      '<text x="14" y="400" class="room-label" transform="rotate(-90 14 400)">okná</text>' +
+      '<text x="500" y="30" class="room-label">záves</text>' +
+      '<path d="M790 40A180 180 0 0 0 970 220V40Z" class="dj"/><text x="912" y="110" class="dj-label">DJ</text>' +
+      '<rect x="935" y="250" width="35" height="80" class="box"/><text x="952" y="290" class="small-label" transform="rotate(90 952 290)">WC</text>' +
+      '<rect x="700" y="250" width="200" height="270" rx="6" class="parket"/><text x="800" y="392" class="parket-label">PARKET</text>' +
+      '<rect x="918" y="545" width="44" height="90" rx="4" class="box"/><text x="940" y="590" class="small-label" transform="rotate(90 940 590)">bufet</text>' +
+      '<line x1="970" y1="650" x2="970" y2="730" class="window"/><text x="988" y="690" class="terasa-label" transform="rotate(90 988 690)">TERASA</text>' +
+      [229, 399, 569].map((y) => '<rect x="640" y="' + (y - 11) + '" width="22" height="22" class="pillar"/>').join("") +
+      '<line x1="240" y1="730" x2="360" y2="730" class="door"/><text x="300" y="754" class="door-label">▲ VCHOD</text>' +
+      g + "</svg>";
+  }
+
+  function pageSala() {
+    const seats = seatMap();
+    const total = TABLES.reduce((n, t) => n + t.seats.length, 0), taken = Object.keys(seats).length;
+    let html = '<div class="page-head"><h2>Sála</h2><p>Zasadací poriadok · obsadené ' + taken + " z " + total + " miest. Ťukni na stôl a potom na miesto.</p></div>" +
+      '<section class="plan-wrap">' + planSVG(seats) + '<div class="legend"><span><i class="seat-dot"></i>voľné</span><span><i class="seat-dot on"></i>obsadené</span></div></section>';
+    html += '<div class="seg" role="group" aria-label="Stoly">' + TABLES.map((t) => '<button type="button" data-table="' + t.id + '" aria-pressed="' + (ui.table === t.id) + '">' + t.name + " " + t.seats.filter((x) => seats[x.id]).length + "/" + t.seats.length + "</button>").join("") + "</div>";
+    const t = TABLES.find((x) => x.id === ui.table);
+    if (t) {
+      html += '<section><h3>' + t.name + ' <span class="num">' + t.seats.filter((x) => seats[x.id]).length + "/" + t.seats.length + "</span></h3>" +
+        '<p class="note" style="margin:0">Ponúkajú sa mená ' + GROUP_LABEL[t.group] + ". Kto už niekde sedí, v ponuke nie je.</p><ul class=\"list\">" +
+        t.seats.map((st) => {
+          const who = seats[st.id];
+          const inner = '<span class="seat-dot' + (who ? " on" : "") + '"></span><div class="grow">' + (who ? esc(who.name) : '<span class="sub">voľné</span>') + '<div class="sub">' + esc(st.label) + "</div></div>";
+          if (ui.edit && ui.edit.kind === "seat" && ui.edit.id === st.id) return '<li class="editing"><div class="open-head">' + inner + "</div>" + seatEditorHTML(t, st, who, seats) + "</li>";
+          return '<li><button type="button" class="row-btn" data-act="open" data-kind="seat" data-id="' + st.id + '">' + inner + '<span class="chev" aria-hidden="true">›</span></button></li>';
+        }).join("") + "</ul></section>";
+    }
+    return pageWrap(html);
+  }
+
+  function seatEditorHTML(t, st, who, seats) {
+    const seated = new Set(Object.values(seats).filter((x) => x.id !== st.id).map((x) => x.name.trim().toLowerCase()));
+    const free = peopleFor(t.group).filter((p) => !seated.has(p.name.trim().toLowerCase()));
+    return '<form class="editor" data-kind="seat" data-id="' + st.id + '" data-table="' + t.id + '">' +
+      '<label>Meno<input id="seat-name" list="dl-seat" autocomplete="off" required placeholder="vyber zo zoznamu alebo napíš" value="' + esc(who ? who.name : "") + '"></label>' +
+      '<datalist id="dl-seat">' + free.map((p) => '<option value="' + esc(p.name) + '" label="' + esc(p.hint) + '"></option>').join("") + "</datalist>" +
+      (free.length ? '<div class="pick-names">' + free.slice(0, 40).map((p) => '<button type="button" class="chip-btn" data-act="seat-pick" data-name="' + esc(p.name) + '">' + esc(p.name) + '<small>' + esc(p.hint) + "</small></button>").join("") + "</div>"
+        : '<p class="note" style="grid-column:1/-1;margin:0">Všetci ' + GROUP_LABEL[t.group] + " už sedia. Meno môžeš napísať ručne.</p>") +
+      '<label>Kto upravuje<input id="ed-by" list="dl-people" autocomplete="off" required placeholder="tvoje meno" value="' + esc(whoAmI()) + '"></label>' +
+      '<div class="actions"><button type="submit"' + (ui.busy ? " disabled" : "") + '>Uložiť</button><button type="button" class="ghost" data-act="cancel">Zavrieť</button><span class="spacer"></span>' +
+      (who ? '<button type="button" class="danger" data-act="seat-free" data-id="' + st.id + '">Uvoľniť miesto</button>' : "") + "</div></form>";
+  }
+
   // Shopping list: pieces and price per product, totals per kind and per Alko/Nealko, grand total.
   function shoppingListHTML(orders) {
     const lines = data.catalog.map((c) => {
@@ -555,7 +708,7 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
   /* ---------- Render ---------- */
   function render() {
     const active = document.activeElement && document.activeElement.id;
-    const pages = { domov: pageDomov, ulohy: pageUlohy, hostia: pageHostia, napoje: pageNapoje, peniaze: pagePeniaze };
+    const pages = { domov: pageDomov, ulohy: pageUlohy, hostia: pageHostia, sala: pageSala, napoje: pageNapoje, peniaze: pagePeniaze };
     const updated = data.updated ? new Date(data.updated).toLocaleString("sk-SK", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
     const people = [...new Set(["Všetci", ...data.students.map((s) => s.name), ...data.teachers.map((t) => t.name)])];
     const main = !loaded ? '<div class="loading"><b>Stužková 4.NA</b><span>' + (loadError ? "Nepodarilo sa načítať údaje (" + esc(loadError) + "). Skúšam znova…" : "Načítavam údaje triedy…") + "</span>" + (loadError ? '<button type="button" onclick="location.reload()">Skúsiť hneď</button>' : "") + "</div>" : installHTML() + pages[ui.tab]();
@@ -600,6 +753,7 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
       return;
     }
     const kind = form.dataset.kind; if (!kind) return;
+    if (kind === "seat") { saveSeat(form.dataset.id, form.dataset.table, $("seat-name").value.trim(), $("ed-by").value.trim()); return; }
     const col = COLLECTION[kind] || kind, id = form.dataset.id;
     const by = $("ed-by").value.trim(); store.set("stuzkova-meno", by);
     const vals = {};
@@ -624,6 +778,8 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
     const tb = ev.target.closest("[data-tab]"); if (tb) { go(tb.dataset.tab); return; }
     const g = ev.target.closest("[data-go]"); if (g) { if (g.dataset.guest) ui.guestView = g.dataset.guest; go(g.dataset.go); return; }
     const tf = ev.target.closest("[data-taskfilter]"); if (tf) { ui.taskFilter = tf.dataset.taskfilter; render(); return; }
+    const tbl = ev.target.closest("[data-table]");
+    if (tbl && !ev.target.closest("form")) { ui.table = ui.table === tbl.dataset.table && tbl.tagName !== "g" ? null : tbl.dataset.table; ui.edit = null; render(); const sec = document.querySelector(".seg + section"); if (sec && tbl.tagName === "g") sec.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
     const gv = ev.target.closest("[data-guestview]"); if (gv) { ui.guestView = gv.dataset.guestview; ui.edit = null; render(); return; }
     const el = ev.target.closest("[data-act]"); if (!el) return;
     const act = el.dataset.act;
@@ -638,6 +794,13 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
     }
     if (act === "cancel") { ui.edit = null; if (pending) { applyServer(pending); pending = null; } render(); return; }
     if (act === "news-all") { ui.newsAll = true; render(); return; }
+    if (act === "seat-pick") { const i = $("seat-name"); if (i) i.value = el.dataset.name; return; }
+    if (act === "seat-free") {
+      const id = el.dataset.id, by = ($("ed-by") && $("ed-by").value.trim()) || whoAmI();
+      if (el.dataset.confirm !== "1") { el.dataset.confirm = "1"; el.textContent = "Naozaj uvoľniť?"; return; }
+      ui.edit = null; data.seats = data.seats.filter((x) => x.id !== id);
+      persist("deleteItem", ["seats", id, by], "Miesto uvoľnené"); return;
+    }
     if (act === "toggle-catalog") { ui.showCatalog = !ui.showCatalog; ui.edit = null; render(); return; }
     if (act === "qty") {
       const i = $("q-" + el.dataset.id); if (!i) return;
