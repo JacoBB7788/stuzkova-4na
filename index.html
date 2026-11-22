@@ -142,6 +142,16 @@ body { margin: 0; padding-top: env(safe-area-inset-top, 0px); }
 .install { display: grid; gap: 8px; border-color: color-mix(in srgb, var(--red) 55%, var(--line)); }
 .install p { margin: 0; font-size: 14px; color: var(--muted); }
 .install .row { display: flex; gap: 8px; flex-wrap: wrap; }
+ul.order { list-style: none; margin: 0; padding: 0; display: grid; }
+ul.order li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); min-width: 0; }
+ul.order li:first-child { border-top: none; }
+ul.order .pcs { flex: none; width: 46px; text-align: center; font-family: var(--font-display); font-size: 28px; font-weight: 600; line-height: 1; color: var(--fg); }
+ul.order .pcs small { display: block; font-family: var(--font-body); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+ul.order .name { overflow-wrap: anywhere; }
+ul.order .bar { height: 3px; background: var(--line); border-radius: 99px; margin-top: 6px; overflow: hidden; }
+ul.order .bar i { display: block; height: 100%; background: var(--red); }
+.order-total { display: flex; align-items: center; gap: 12px; border-color: var(--red); }
+.order-total b { font-family: var(--font-mono); font-size: 22px; white-space: nowrap; }
 .table-wrap { overflow-x: auto; margin: 0 -4px; }
 table.shop { width: 100%; border-collapse: collapse; font-size: 14px; }
 table.shop th, table.shop td { padding: 7px 4px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
@@ -443,35 +453,53 @@ button.big { font-size: 16px; padding: 14px 18px; display: inline-flex; gap: 8px
     return pageWrap(html);
   }
 
+  // Final order from Pima (cenová ponuka 26064780), prices with VAT. Read-only for everyone.
+  const PIMA_ORDER = {
+    ref: "26064780", due: "11. 12. 2026",
+    items: [
+      ["Alko", "Borovička Koniferum 37,5 % 1 l", 9, 11.633, 104.70],
+      ["Alko", "Beefeater Pink Gin 37,5 % 0,7 l", 6, 15.126, 90.76],
+      ["Alko", "TO-HOREKA Rulandské šedé 0,75 l", 18, 4.4617, 80.31],
+      ["Alko", "Vodka Absolut 40 % 0,7 l", 6, 13.038, 78.23],
+      ["Alko", "I Heart Prosecco DOC Frizzante 0,75 l", 12, 4.5017, 54.02],
+      ["Alko", "Vodka Absolut Mandarin 40 % 0,7 l", 3, 14.476, 43.43],
+      ["Alko", "Vodka Absolut Mango 38 % 0,7 l", 3, 14.390, 43.17],
+      ["Alko", "Jägermeister 35 % 0,7 l", 3, 13.623, 40.87],
+      ["Alko", "Rum Republica Božkov 35 % 0,7 l", 2, 13.260, 26.52],
+      ["Nealko", "Coca-Cola 1,5 l", 24, 1.89, 45.36],
+      ["Nealko", "Kinley Tonic Rose Berry 1,5 l", 12, 1.89, 22.68],
+      ["Nealko", "Kofola Original 2 l", 12, 1.6092, 19.31],
+      ["Nealko", "Sprite 1,5 l", 6, 1.89, 11.34],
+      ["Nealko", "Coca-Cola Zero 1,5 l", 6, 1.89, 11.34],
+      ["Nealko", "Happy Day pomaranč 100 % 1 l", 6, 1.6783, 10.07],
+      ["Nealko", "Happy Day jablko 100 % 1 l", 6, 1.6283, 9.77],
+      ["Nealko", "Happy Day multivitamín 100 % 1 l", 6, 1.6283, 9.77],
+      ["Nealko", "Baldovská jemne perlivá 2 l", 18, 0.4728, 8.51],
+      ["Nealko", "Birell nealko pivo 0,5 l plech", 6, 0.785, 4.71],
+      ["Zálohy", "Zálohový obal plast", 78, 0.15, 11.70],
+      ["Zálohy", "Zálohový obal plech", 6, 0.15, 0.90],
+    ],
+  };
   function pageNapoje() {
-    const cats = catById();
-    const orders = data.students.map((st) => ({ st, o: orderOf(st) }));
-    const filled = orders.filter((x) => Object.keys(x.o).some((id) => cats[id] && x.o[id] > 0));
-    let html = '<div class="page-head"><h2>Nápoje</h2><p>' + filled.length + " z " + data.students.length + " žiakov si vybralo. Klikni na svoje meno a nastav počet kusov z ponuky. Ceny sú za kus bez DPH.</p></div><section><h3>Objednávky žiakov</h3>";
-    html += '<ul class="list">' + orders.sort((a, b) => a.st.name.localeCompare(b.st.name, "sk")).map(({ st, o }) => {
-      const txt = orderText(o, cats), cost = orderCost(o, cats);
-      return row("drinks", st, '<div class="grow">' + esc(st.name) + '<div class="sub">' + (txt || "ešte nevybral") + (st.drinkNote ? " · " + esc(st.drinkNote) : "") + "</div></div>" + (cost ? '<span class="num">' + eur(cost) + "</span>" : ""));
-    }).join("") + "</ul></section>";
-    // Summary: per drink pieces and totals, with who ordered it.
-    let grand = 0;
-    const groups = ["Alko", "Nealko"].map((cat) => {
-      const lines = data.catalog.filter((c) => c.cat === cat).map((c) => {
-        const who = orders.filter((x) => Number(x.o[c.id]) > 0).map((x) => ({ name: x.st.name, n: Number(x.o[c.id]) }));
-        const pcs = who.reduce((n, w) => n + w.n, 0);
-        return { c, who, pcs, total: pcs * (Number(c.price) || 0) };
-      }).filter((l) => l.pcs > 0);
-      const sum = lines.reduce((n, l) => n + l.total, 0); grand += sum;
-      if (!lines.length) return "";
-      return '<h3>' + cat + ' <span class="num">' + eur(sum) + '</span></h3><ul class="list">' + lines.map((l) =>
-        '<li><div class="grow">' + esc(l.c.name) + '<div class="sub">' + l.pcs + " ks × " + eur(l.c.price) + " · " + l.who.map((w) => esc(w.name) + " " + w.n).join(", ") + '</div></div><span class="num">' + eur(l.total) + "</span></li>").join("") + "</ul>";
-    }).join("");
-    html += '<section><h3>Kto si čo zadal <span class="num">' + eur(grand) + " bez DPH</span></h3>" + (groups || '<div class="empty">Zatiaľ si nikto nič nevybral.</div>') + "</section>";
-    html += shoppingListHTML(orders);
-    html += '<section><h3>Ponuka nápojov <button type="button" class="ghost small" data-act="toggle-catalog">' + (ui.showCatalog ? "Skryť" : "Upraviť ponuku (" + data.catalog.length + ")") + "</button></h3>";
-    if (ui.showCatalog) {
-      html += ["Alko", "Nealko"].map((cat) => '<h3>' + cat + '</h3><ul class="list">' + data.catalog.filter((c) => c.cat === cat).map((c) => row("catalog", c, '<div class="grow">' + esc(c.name) + '</div><span class="num">' + eur(c.price) + "</span>")).join("") + "</ul>").join("") + addBlock("catalog", "Pridať nápoj");
-    }
-    return pageWrap(html + "</section>");
+    const items = PIMA_ORDER.items.map(([cat, name, pcs, price, total]) => ({ cat, name, pcs, price, total }));
+    const sum = (ls) => ({ pcs: ls.reduce((n, i) => n + i.pcs, 0), total: Math.round(ls.reduce((n, i) => n + i.total, 0) * 100) / 100 });
+    const alko = sum(items.filter((i) => i.cat === "Alko")), nealko = sum(items.filter((i) => i.cat === "Nealko")), all = sum(items);
+    const max = Math.max(...items.map((i) => i.total));
+    let html = '<div class="page-head"><h2>Nápoje</h2><p>Objednávka z Pima, ceny s DPH. Vybaviť do ' + PIMA_ORDER.due + ".</p></div>" +
+      '<section><div class="stats">' +
+      '<div class="stat"><b>' + eur(all.total) + "</b><span>celkom s DPH</span></div>" +
+      '<div class="stat"><b>' + eur(alko.total) + "</b><span>alko · " + alko.pcs + " ks</span></div>" +
+      '<div class="stat"><b>' + eur(nealko.total) + "</b><span>nealko · " + nealko.pcs + " ks</span></div>" +
+      '<div class="stat"><b>' + (alko.pcs + nealko.pcs) + " ks</b><span>nápojov spolu</span></div></div></section>";
+    [["Alko", alko], ["Nealko", nealko], ["Zálohy", null]].forEach(([cat, tot]) => {
+      const ls = items.filter((i) => i.cat === cat);
+      const t = tot || sum(ls);
+      html += '<section><h3>' + (cat === "Zálohy" ? "Zálohy na obaly" : cat) + ' <span class="num">' + (cat === "Zálohy" ? "" : t.pcs + " ks · ") + eur(t.total) + '</span></h3><ul class="order">' +
+        ls.map((i) => '<li><span class="pcs">' + i.pcs + '<small>ks</small></span><div class="grow"><div class="name">' + esc(i.name) + '</div><div class="sub">' + eur(i.price) + " / ks</div>" +
+          (cat === "Zálohy" ? "" : '<div class="bar" aria-hidden="true"><i style="width:' + Math.max(2, i.total / max * 100) + '%"></i></div>') + '</div><span class="num">' + eur(i.total) + "</span></li>").join("") + "</ul></section>";
+    });
+    html += '<section class="order-total"><div class="grow">Spolu za objednávku<div class="sub">' + (alko.pcs + nealko.pcs) + " ks nápojov + zálohy · ceny s DPH</div></div><b>" + eur(all.total) + "</b></section>";
+    return pageWrap(html);
   }
 
   // Shopping list: pieces and price per product, totals per kind and per Alko/Nealko, grand total.
